@@ -1,0 +1,1 @@
+export default function BoardListPage() { return <div>게시판 목록 화면</div>; }
