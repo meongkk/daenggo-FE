@@ -1,0 +1,1 @@
+export default function BoardDetailPage() { return <div>게시판 상세 화면</div>; }
