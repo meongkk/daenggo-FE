@@ -1,0 +1,276 @@
+/* src/features/board/pages/Board.css */
+
+/* 모바일 화면 기본 설정 */
+.mobile-container {
+    max-width: 400px;
+    margin: 0 auto;
+    height: 100vh;
+    background-color: #f8f9fc;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 상단 헤더 */
+.header {
+    text-align: center;
+    font-weight: bold;
+    font-size: 18px;
+    padding: 20px 0;
+    background-color: white;
+}
+
+/* 게시판 선택 드롭다운 영역 */
+.board-selector {
+    display: flex;
+    justify-content: space-between;
+    padding: 15px 20px;
+    font-weight: 500;
+    background-color: white;
+    cursor: pointer;
+}
+
+/* 게시글 목록 스크롤 영역 */
+.post-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 20px;
+    padding-bottom: 80px; /* 하단 네비게이션바에 안 가려지게 여백 */
+}
+
+/* 개별 게시글 카드 */
+.post-card {
+    background-color: white;
+    border-radius: 12px;
+    padding: 15px;
+    margin-top: 15px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.post-image-placeholder {
+    width: 100%;
+    height: 180px;
+    background-color: #e6efff; /* 연한 파란색 배경 */
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #a0c0ff;
+    font-size: 40px;
+}
+
+.post-info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 15px;
+}
+
+.nickname {
+    font-weight: bold;
+    font-size: 15px;
+}
+
+.stats {
+    display: flex;
+    gap: 10px;
+    color: #888;
+    font-size: 14px;
+}
+
+.post-content {
+    margin-top: 10px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #333;
+    white-space: pre-wrap; /* 줄바꿈(\n) 적용되게 함 */
+}
+
+/* 플로팅 글쓰기 버튼 (주황색) */
+.fab-write {
+    position: absolute;
+    bottom: 80px;
+    right: 20px;
+    width: 50px;
+    height: 50px;
+    background-color: #f29b28;
+    border-radius: 25px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 24px;
+    border: none;
+    box-shadow: 0 4px 10px rgba(242, 155, 40, 0.3);
+    cursor: pointer;
+}
+
+/* 하단 네비게이션 바 (임시) */
+.bottom-nav {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 60px;
+    background-color: white;
+    border-top: 1px solid #eee;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    font-size: 12px;
+    color: #ccc;
+}
+.nav-item.active {
+    color: #f29b28; /* 선택된 탭 주황색 */
+}
+/* 드롭다운 메뉴 스타일 */
+.dropdown-menu {
+    background-color: white;
+    border-top: 1px solid #f0f0f0;
+    padding: 0 20px;
+}
+
+.dropdown-item {
+    padding: 15px 0;
+    border-bottom: 1px solid #f8f9fc;
+    font-size: 15px;
+    color: #555;
+    cursor: pointer;
+}
+
+.dropdown-item:active {
+    background-color: #f0f0f0; /* 터치했을 때 살짝 회색으로 변하는 효과 */
+}
+
+/* --- 게시물 상세 화면 전용 스타일 --- */
+.detail-category {
+    padding: 15px 20px 0;
+    color: #888;
+    font-size: 14px;
+}
+
+.divider {
+    height: 1px;
+    background-color: #eee;
+    margin: 20px 0;
+}
+
+.comment-list {
+    padding: 0 20px;
+    padding-bottom: 130px; /* 댓글 입력창과 하단바에 안 가려지게 여유 공간 */
+}
+
+.comment-item {
+    margin-bottom: 15px;
+}
+
+.comment-item .content {
+    font-size: 14px;
+    color: #444;
+    margin-top: 4px;
+}
+
+/* 댓글 입력창 (하단 네비게이션 바로 위 고정) */
+.comment-input-area {
+    position: absolute;
+    bottom: 60px; /* 네비게이션 바(60px) 바로 위에 위치 */
+    width: 100%;
+    padding: 10px 20px;
+    background-color: white;
+    border-top: 1px solid #eee;
+    display: flex;
+    gap: 10px;
+    box-sizing: border-box; /* padding이 width를 넘지 않게 방지 */
+}
+
+.comment-input-area input {
+    flex: 1;
+    padding: 10px 15px;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    outline: none;
+    font-size: 14px;
+}
+
+.comment-send-btn {
+    width: 40px;
+    height: 40px;
+    background-color: #f29b28;
+    border: none;
+    border-radius: 50%;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+/* --- 게시글 작성 화면 전용 스타일 --- */
+.write-container {
+    padding: 20px;
+    flex: 1;
+    overflow-y: auto;
+}
+
+.image-upload-box {
+    width: 100%;
+    height: 200px;
+    background-color: #e6efff;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 50px;
+    color: #a0c0ff;
+    margin-bottom: 20px;
+    cursor: pointer;
+}
+
+.title-input {
+    width: 100%;
+    border: none;
+    border-bottom: 1px solid #eee;
+    padding: 15px 0;
+    font-size: 16px;
+    font-weight: bold;
+    outline: none; /* 클릭했을 때 까만 테두리 생기는 것 방지 */
+    margin-bottom: 15px;
+}
+
+.title-input::placeholder {
+    color: #ccc;
+}
+
+.content-textarea {
+    width: 100%;
+    border: none;
+    height: 200px;
+    font-size: 15px;
+    outline: none;
+    resize: none; /* 우측 하단 크기조절 막기 */
+}
+
+.content-textarea::placeholder {
+    color: #ccc;
+}
+
+/* 등록하기 버튼을 묶는 박스 (하단 고정) */
+.submit-btn-wrapper {
+    position: absolute;
+    bottom: 80px; /* 네비게이션 바(60px) 위에 여백(20px) 주기 */
+    width: 100%;
+    padding: 0 20px;
+    box-sizing: border-box;
+}
+
+.submit-btn {
+    width: 100%;
+    background-color: #f29b28;
+    color: white;
+    border: none;
+    padding: 15px 0;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+}
