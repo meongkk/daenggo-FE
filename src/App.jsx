@@ -3,7 +3,7 @@ import BoardListPage from './features/board/pages/BoardListPage';
 import BoardDetailPage from './features/board/pages/BoardDetailPage';
 import BoardWritePage from './features/board/pages/BoardWritePage';
 
-function App() {
+function App() { //테스트용
   return (
       <BrowserRouter>
         <Routes>
