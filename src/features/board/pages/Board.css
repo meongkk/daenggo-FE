@@ -1,11 +1,20 @@
 /* src/features/board/pages/Board.css */
 
 /* 모바일 화면 기본 설정 */
+
+* {
+    box-sizing: border-box;
+}
+
 .mobile-container {
+    width : 100%;
     max-width: 400px;
     margin: 0 auto;
     height: 100vh;
+    height: 100dvh;
     background-color: #f8f9fc;
+    color: #4a433d;
+    color-scheme: light;
     position: relative;
     overflow: hidden;
     display: flex;
@@ -206,10 +215,106 @@
     justify-content: center;
 }
 /* --- 게시글 작성 화면 전용 스타일 --- */
+.write-header {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.back-button {
+    position: absolute;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: #4a433d;
+    font-size: 20px;
+    cursor: pointer;
+}
+
+.back-button:active {
+    background-color: #fff4e6;
+}
+
+.write-form {
+    min-height: 0;
+    margin-bottom: 60px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: #f8f9fc;
+}
+
 .write-container {
     padding: 20px;
     flex: 1;
     overflow-y: auto;
+    text-align: left;
+    scrollbar-width: thin;
+    scrollbar-color: #eadfd5 transparent;
+}
+
+.write-board-selector {
+    padding: 0 0 15px;
+    background-color: transparent;
+}
+
+.write-board-selector select {
+    width: 100%;
+    border: none;
+    outline: none;
+    background-color: transparent;
+    color: #4a433d;
+    font: inherit;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.market-options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.trade-status-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.trade-status-button {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ddd4cc;
+    border-radius: 8px;
+    background-color: #fff;
+    color: #8c837b;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.trade-status-button.active {
+    border: 2px solid #f29b28;
+    background-color: #fff4e6;
+    color: #e67e22;
+}
+
+.image-upload-section {
+    margin-bottom: 20px;
+}
+
+.image-upload-heading {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    color: #655d56;
+    font-size: 14px;
+    font-weight: 600;
 }
 
 .image-upload-box {
@@ -222,45 +327,138 @@
     justify-content: center;
     font-size: 50px;
     color: #a0c0ff;
-    margin-bottom: 20px;
+    flex-direction: column;
+    gap: 4px;
     cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.image-upload-box:hover,
+.image-upload-box:focus-visible {
+    background-color: #dce9ff;
+}
+
+.image-upload-plus {
+    font-size: 48px;
+    line-height: 1;
+}
+
+.image-upload-text {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.image-preview-list {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.image-preview-item,
+.image-add-button {
+    position: relative;
+    aspect-ratio: 1;
+    overflow: hidden;
+    border-radius: 10px;
+}
+
+.image-preview-item img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+}
+
+.image-remove-button {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background-color: rgba(35, 31, 28, 0.72);
+    color: #fff;
+    font-size: 20px;
+    line-height: 24px;
+    cursor: pointer;
+}
+
+.image-add-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px dashed #a0c0ff;
+    background-color: #e6efff;
+    color: #86aaf0;
+    font-size: 32px;
+    cursor: pointer;
+}
+
+.image-upload-guide {
+    margin: 8px 0 0;
+    color: #9b938c;
+    font-size: 12px;
 }
 
 .title-input {
     width: 100%;
-    border: none;
-    border-bottom: 1px solid #eee;
-    padding: 15px 0;
+    border: 1px solid #eee4da;
+    border-radius: 10px;
+    padding: 14px 15px;
+    background-color: #fffdf9;
+    color: #4a433d;
     font-size: 16px;
     font-weight: bold;
-    outline: none; /* 클릭했을 때 까만 테두리 생기는 것 방지 */
+    outline: none;
     margin-bottom: 15px;
+    caret-color: #e67e22;
 }
 
 .title-input::placeholder {
-    color: #ccc;
+    color: #aaa29a;
 }
 
 .content-textarea {
     width: 100%;
-    border: none;
+    border: 1px solid #eee4da;
+    border-radius: 10px;
     height: 200px;
+    padding: 15px;
+    background-color: #fffdf9;
+    color: #4a433d;
+    font-family: inherit;
     font-size: 15px;
+    line-height: 1.6;
     outline: none;
-    resize: none; /* 우측 하단 크기조절 막기 */
+    resize: none;
+    caret-color: #e67e22;
 }
 
 .content-textarea::placeholder {
-    color: #ccc;
+    color: #aaa29a;
 }
 
-/* 등록하기 버튼을 묶는 박스 (하단 고정) */
+.title-input:focus,
+.content-textarea:focus {
+    border-color: #f2b563;
+    box-shadow: 0 0 0 3px rgba(242, 155, 40, 0.12);
+}
+
+.submit-error {
+    margin: 10px 2px 0;
+    color: #d64b42;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+/* 입력 내용이 길어져도 등록 버튼은 하단 내비게이션 위에 유지됩니다. */
 .submit-btn-wrapper {
-    position: absolute;
-    bottom: 80px; /* 네비게이션 바(60px) 위에 여백(20px) 주기 */
     width: 100%;
-    padding: 0 20px;
-    box-sizing: border-box;
+    padding: 12px 20px 20px;
+    flex-shrink: 0;
+    background: linear-gradient(to bottom, rgba(248, 249, 252, 0.7), #f8f9fc 30%);
 }
 
 .submit-btn {
@@ -273,4 +471,46 @@
     font-size: 16px;
     font-weight: bold;
     cursor: pointer;
+}
+
+.submit-btn:disabled {
+    background-color: #d8b88f;
+    cursor: wait;
+}
+
+.board-bottom-nav .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: #999;
+}
+
+.board-bottom-nav .nav-item.active {
+    color: #e67e22;
+}
+
+.board-bottom-nav img {
+    width: 24px;
+    height: 24px;
+    margin-bottom: 4px;
+}
+
+.board-bottom-nav span {
+    font-size: 12px;
+}
+
+.board-bottom-nav .active span {
+    font-weight: bold;
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
 }

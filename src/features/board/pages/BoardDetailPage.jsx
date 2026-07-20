@@ -2,6 +2,10 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import './Board.css';
+import mapIcon from "../../../assets/icons/map.svg";
+import walkIcon from "../../../assets/icons/walk.svg";
+import communityActiveIcon from "../../../assets/icons/community.svg";
+import mypageIcon from "../../../assets/icons/mypage.svg";
 
 export default function BoardDetailPage() {
     // 1. 주소창에서 게시글 번호(/board/1 등)를 뽑아옵니다.
@@ -80,11 +84,28 @@ export default function BoardDetailPage() {
             </div>
 
             {/* 하단 네비게이션 바 */}
-            <nav className="bottom-nav">
-                <div className="nav-item">🧭 지도</div>
-                <div className="nav-item">🛣️ 산책</div>
-                <div className="nav-item active">💬 커뮤니티</div>
-                <div className="nav-item">👤 마이페이지</div>
+            <nav className="bottom-nav" style={{ display: 'flex', justifyContent: 'space-around', padding: '10px 0', borderTop: '1px solid #eee' }}>
+
+                <div className="nav-item" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', color: '#999' }}>
+                    <img src={mapIcon} alt="지도" style={{ width: '24px', height: '24px', marginBottom: '4px' }} />
+                    <span style={{ fontSize: '12px' }}>지도</span>
+                </div>
+
+                <div className="nav-item" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', color: '#999' }}>
+                    <img src={walkIcon} alt="산책" style={{ width: '24px', height: '24px', marginBottom: '4px' }} />
+                    <span style={{ fontSize: '12px' }}>산책</span>
+                </div>
+
+                {/* 현재 커뮤니티 탭이므로 주황색 활성화 아이콘 사용 및 글씨색 변경 */}
+                <div className="nav-item active" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', color: '#E67E22' }}>
+                    <img src={communityActiveIcon} alt="커뮤니티" style={{ width: '24px', height: '24px', marginBottom: '4px' }} />
+                    <span style={{ fontSize: '12px', fontWeight: 'bold' }}>커뮤니티</span>
+                </div>
+
+                <div className="nav-item" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', color: '#999' }}>
+                    <img src={mypageIcon} alt="마이페이지" style={{ width: '24px', height: '24px', marginBottom: '4px' }} />
+                    <span style={{ fontSize: '12px' }}>마이페이지</span>
+                </div>
             </nav>
         </div>
     );
