@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createBoardPost } from '../api/boardApi';
+import { createBoardPost, uploadBoardImages } from '../api/boardApi';
 import './Board.css';
 import mapIcon from '../../../assets/icons/map.svg';
 import walkIcon from '../../../assets/icons/walk.svg';
@@ -9,7 +9,7 @@ import mypageIcon from '../../../assets/icons/mypage.svg';
 
 const MAX_IMAGE_COUNT = 5;
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
-const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 // 로그인 기능이 붙기 전까지 사용할 개발용 작성자 ID입니다. 로그인 구현 후 실제 사용자 ID로 바꾸면 됩니다.
 const TEMP_WRITER_ID = Number(import.meta.env.VITE_BOARD_WRITER_ID ?? 1);
 
@@ -48,7 +48,7 @@ export default function BoardWritePage() {
 
         const invalidTypeFile = selectedFiles.find((file) => !ALLOWED_IMAGE_TYPES.includes(file.type));
         if (invalidTypeFile) {
-            alert('JPG, PNG, WEBP 형식의 사진만 등록할 수 있어요.');
+            alert('JPG, PNG, GIF, WEBP 형식의 사진만 등록할 수 있어요.');
             return;
         }
 
@@ -66,7 +66,7 @@ export default function BoardWritePage() {
         setImages((currentImages) => currentImages.filter((_, index) => index !== imageIndex));
     };
 
-    // 글 등록 API는 JSON만 받으므로 제목, 내용 등의 글 정보만 JSON으로 전송합니다.
+    // 사진을 먼저 저장하고 받은 주소들을 글 정보와 함께 JSON으로 등록합니다.
     const handleSubmit = async (event) => {
         event.preventDefault();
 
@@ -80,27 +80,24 @@ export default function BoardWritePage() {
             return;
         }
 
-        // 사진은 JSON 요청에 파일 그대로 넣을 수 없어서 별도의 사진 업로드 API가 필요합니다.
-        if (images.length > 0) {
-            setSubmitError('사진 업로드 API가 아직 연결되지 않았어요. 사진을 빼면 글은 바로 등록할 수 있습니다.');
-            return;
-        }
-
         if (!Number.isInteger(TEMP_WRITER_ID) || TEMP_WRITER_ID <= 0) {
             setSubmitError('.env의 VITE_BOARD_WRITER_ID에 실제 작성자 ID를 입력해주세요.');
             return;
         }
 
-        // 백엔드 CreateCommunityPostRequest가 요구하는 세 필드만 정확히 전송합니다.
-        const requestData = {
-            title: title.trim(),
-            content: content.trim(),
-            userId: TEMP_WRITER_ID,
-        };
-
         try {
             setIsSubmitting(true);
             setSubmitError('');
+
+            // 업로드 API가 돌려준 주소를 게시글에 넣어 사진과 글을 연결합니다.
+            const imageUrls = await uploadBoardImages(images);
+            const requestData = {
+                title: title.trim(),
+                content: content.trim(),
+                userId: TEMP_WRITER_ID,
+                imageUrls,
+            };
+
             await createBoardPost(requestData);
             alert('게시글이 등록되었습니다.');
             navigate('/board');
@@ -224,7 +221,7 @@ export default function BoardWritePage() {
                                 )}
                             </div>
                         )}
-                        <p className="image-upload-guide">JPG, PNG, WEBP · 장당 최대 10MB</p>
+                        <p className="image-upload-guide">JPG, PNG, GIF, WEBP · 장당 최대 10MB</p>
                     </section>
 
                     <label className="sr-only" htmlFor="board-title">게시글 제목</label>
