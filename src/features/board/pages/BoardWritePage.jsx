@@ -91,11 +91,19 @@ export default function BoardWritePage() {
             return;
         }
 
+        const categoryMap = {
+            '소통 게시판': 'FREE',
+            '장터 게시판': 'MARKET',
+            '시터 게시판': 'SITTER',
+        };
+
         // 백엔드 CreateCommunityPostRequest가 요구하는 세 필드만 정확히 전송합니다.
         const requestData = {
+            category: categoryMap[boardType],
             title: title.trim(),
             content: content.trim(),
             userId: TEMP_WRITER_ID,
+            imageUrls: [],
         };
 
         try {
