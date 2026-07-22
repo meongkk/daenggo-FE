@@ -1,11 +1,18 @@
 import axios from 'axios';
+// 임시 사용자
+const TEMP_USER_ID = Number(
+    import.meta.env.VITE_WALK_USER_ID ?? 1
+);
 
 // API 주소가 바뀌어도 이 값(.env) 하나만 수정하도록 기본 주소를 한곳에서 관리합니다.
 const WALK_API_URL = import.meta.env.VITE_WALK_API_URL ?? '/api/walks';
 
 // 산책 시작: 백엔드가 새 기록을 만들고 walkRecordId를 돌려줍니다.
 export async function startWalk() {
-    const response = await axios.post(WALK_API_URL, {}, {
+    const response = await axios.post(WALK_API_URL, {},
+        {   params: {
+                userId: TEMP_USER_ID,
+            },
         headers: { 'Content-Type': 'application/json' },
     });
     return response.data;
