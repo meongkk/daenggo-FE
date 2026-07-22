@@ -1,111 +1,105 @@
-// src/features/board/pages/BoardDetailPage.jsx
-import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { getBoardPost } from '../api/boardApi';
+import { getCategoryLabel } from '../boardConstants';
 import './Board.css';
-import mapIcon from "../../../assets/icons/map.svg";
-import walkIcon from "../../../assets/icons/walk.svg";
-import communityActiveIcon from "../../../assets/icons/community.svg";
-import mypageIcon from "../../../assets/icons/mypage.svg";
+import mapIcon from '../../../assets/icons/map.svg';
+import walkIcon from '../../../assets/icons/walk.svg';
+import communityActiveIcon from '../../../assets/icons/community.svg';
+import mypageIcon from '../../../assets/icons/mypage.svg';
 
 export default function BoardDetailPage() {
-    // 1. 주소창에서 게시글 번호(/board/1 등)를 뽑아옵니다.
     const { id } = useParams();
     const navigate = useNavigate();
-
-    // 2. 댓글 입력창의 글자를 기억할 State
+    const [post, setPost] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [loadError, setLoadError] = useState('');
     const [commentInput, setCommentInput] = useState('');
 
-    // (가짜 데이터) 나중에는 추출한 id를 백엔드로 보내서 진짜 데이터를 받아옵니다.
-    const postDetail = {
-        category: '소통 게시판',
-        nickname: '닉네임',
-        content: '저 오늘 강아지 산책시켰어요\n다음엔 같이 산책할 사람을 구합니다 ~~',
-        likes: 6,
-        comments: 1
-    };
+    useEffect(() => {
+        let isCurrentRequest = true;
 
-    const dummyComments = [
-        { id: 1, nickname: '닉네임2', content: '다음에 같이 시켜요 ^^' }
+        async function loadPost() {
+            try {
+                setIsLoading(true);
+                setLoadError('');
+                const data = await getBoardPost(id);
+                if (isCurrentRequest) setPost(data);
+            } catch (error) {
+                if (isCurrentRequest) setLoadError(error.response?.data?.message ?? error.message);
+            } finally {
+                if (isCurrentRequest) setIsLoading(false);
+            }
+        }
+
+        loadPost();
+        return () => { isCurrentRequest = false; };
+    }, [id]);
+
+    const navItems = [
+        { label: '지도', icon: mapIcon, isActive: false },
+        { label: '산책', icon: walkIcon, isActive: false },
+        { label: '커뮤니티', icon: communityActiveIcon, isActive: true },
+        { label: '마이페이지', icon: mypageIcon, isActive: false },
     ];
 
     return (
         <div className="mobile-container">
-            {/* 뒤로가기 버튼이 포함된 헤더 */}
-            <header className="header" style={{ position: 'relative' }}>
-                <button
-                    onClick={() => navigate(-1)}
-                    style={{ position: 'absolute', left: '20px', background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer' }}
-                >
+            <header className="header write-header">
+                <button type="button" className="back-button" onClick={() => navigate(-1)} aria-label="이전 화면으로 이동">
                     ←
                 </button>
                 커뮤니티
             </header>
 
-            {/* 스크롤 영역 */}
-            <div style={{ flex: 1, overflowY: 'auto' }}>
-                <div className="detail-category">{postDetail.category} ^</div>
-
-                <div style={{ padding: '0 20px' }}>
-                    <div className="post-image-placeholder" style={{ marginTop: '15px' }}>🖼️</div>
-
-                    <div className="post-info-row">
-                        <span className="nickname">{postDetail.nickname}</span>
-                    </div>
-                    <div className="post-content">{postDetail.content}</div>
-
-                    <div className="stats" style={{ justifyContent: 'flex-end', marginTop: '15px' }}>
-                        <span>🤍 {postDetail.likes}</span>
-                        <span>💬 {postDetail.comments}</span>
-                    </div>
-                </div>
-
-                <div className="divider"></div>
-
-                {/* 댓글 목록 */}
-                <div className="comment-list">
-                    {dummyComments.map((comment) => (
-                        <div key={comment.id} className="comment-item">
-                            <div className="nickname">{comment.nickname}</div>
-                            <div className="content">{comment.content}</div>
+            <main style={{ flex: 1, overflowY: 'auto' }}>
+                {isLoading && <p className="board-state-message">게시글을 불러오는 중입니다.</p>}
+                {!isLoading && loadError && <p className="submit-error">{loadError}</p>}
+                {!isLoading && post && (
+                    <>
+                        <div className="detail-category">{getCategoryLabel(post.type)}</div>
+                        <div style={{ padding: '0 20px' }}>
+                            {post.imageUrls?.[0] ? (
+                                <img className="post-image-placeholder" src={post.imageUrls[0]} alt="" style={{ marginTop: '15px' }} />
+                            ) : (
+                                <div className="post-image-placeholder" style={{ marginTop: '15px' }}>🖼️</div>
+                            )}
+                            <div className="post-info-row">
+                                <span className="nickname">{post.nickname || '사용자'}</span>
+                                <span className="stats">조회 {post.viewCount}</span>
+                            </div>
+                            <h2>{post.title}</h2>
+                            <div className="post-content">{post.content}</div>
                         </div>
-                    ))}
-                </div>
-            </div>
+                    </>
+                )}
+            </main>
 
-            {/* 댓글 입력창 (하단 고정) */}
+            {/* 댓글 API가 연결되기 전에도 기존 입력 UI는 유지합니다. */}
             <div className="comment-input-area">
                 <input
                     type="text"
                     placeholder="댓글 남기기"
                     value={commentInput}
-                    onChange={(e) => setCommentInput(e.target.value)}
+                    onChange={(event) => setCommentInput(event.target.value)}
                 />
-                <button className="comment-send-btn">➤</button>
+                <button
+                    type="button"
+                    className="comment-send-btn"
+                    onClick={() => alert('댓글 등록 API 연결이 필요합니다.')}
+                    aria-label="댓글 등록"
+                >
+                    ➤
+                </button>
             </div>
 
-            {/* 하단 네비게이션 바 */}
-            <nav className="bottom-nav" style={{ display: 'flex', justifyContent: 'space-around', padding: '10px 0', borderTop: '1px solid #eee' }}>
-
-                <div className="nav-item" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', color: '#999' }}>
-                    <img src={mapIcon} alt="지도" style={{ width: '24px', height: '24px', marginBottom: '4px' }} />
-                    <span style={{ fontSize: '12px' }}>지도</span>
-                </div>
-
-                <div className="nav-item" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', color: '#999' }}>
-                    <img src={walkIcon} alt="산책" style={{ width: '24px', height: '24px', marginBottom: '4px' }} />
-                    <span style={{ fontSize: '12px' }}>산책</span>
-                </div>
-
-                {/* 현재 커뮤니티 탭이므로 주황색 활성화 아이콘 사용 및 글씨색 변경 */}
-                <div className="nav-item active" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', color: '#E67E22' }}>
-                    <img src={communityActiveIcon} alt="커뮤니티" style={{ width: '24px', height: '24px', marginBottom: '4px' }} />
-                    <span style={{ fontSize: '12px', fontWeight: 'bold' }}>커뮤니티</span>
-                </div>
-
-                <div className="nav-item" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', color: '#999' }}>
-                    <img src={mypageIcon} alt="마이페이지" style={{ width: '24px', height: '24px', marginBottom: '4px' }} />
-                    <span style={{ fontSize: '12px' }}>마이페이지</span>
-                </div>
+            <nav className="bottom-nav" aria-label="주요 메뉴">
+                {navItems.map((item) => (
+                    <div key={item.label} className={`nav-item ${item.isActive ? 'active' : ''}`}>
+                        <img src={item.icon} alt="" />
+                        <span>{item.label}</span>
+                    </div>
+                ))}
             </nav>
         </div>
     );
