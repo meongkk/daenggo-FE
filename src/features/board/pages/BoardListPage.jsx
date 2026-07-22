@@ -2,15 +2,43 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getBoardPosts } from '../api/boardApi';
 import { BOARD_CATEGORIES } from '../boardConstants';
+import BottomNavigation from '../../../components/BottomNavigation';
 import './Board.css';
-import mapIcon from '../../../assets/icons/map.svg';
-import walkIcon from '../../../assets/icons/walk.svg';
-import communityActiveIcon from '../../../assets/icons/community.svg';
-import mypageIcon from '../../../assets/icons/mypage.svg';
+
+function formatCreatedAt(createdAt) {
+    if (!createdAt) return '';
+
+    const createdTime = new Date(createdAt).getTime();
+    const elapsedSeconds = Math.max(0, Math.floor((Date.now() - createdTime) / 1000));
+
+    if (elapsedSeconds < 60) return '방금 전';
+    if (elapsedSeconds < 3600) return `${Math.floor(elapsedSeconds / 60)}분 전`;
+    if (elapsedSeconds < 86400) return `${Math.floor(elapsedSeconds / 3600)}시간 전`;
+    if (elapsedSeconds < 604800) return `${Math.floor(elapsedSeconds / 86400)}일 전`;
+
+    return new Date(createdAt).toLocaleDateString('ko-KR');
+}
+
+// 사진 주소가 없거나 불러오지 못해도 깨진 이미지 대신 기본 칸을 보여줍니다.
+function PostThumbnail({ imageUrl, title }) {
+    const [hasImageError, setHasImageError] = useState(false);
+
+    if (!imageUrl || hasImageError) {
+        return <div className="post-card-thumbnail post-card-thumbnail-empty" aria-hidden="true">🖼️</div>;
+    }
+
+    return (
+        <img
+            className="post-card-thumbnail"
+            src={imageUrl}
+            alt={`${title} 게시글 사진`}
+            onError={() => setHasImageError(true)}
+        />
+    );
+}
 
 export default function BoardListPage() {
     const navigate = useNavigate();
-    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [currentBoard, setCurrentBoard] = useState(BOARD_CATEGORIES[0]);
     const [posts, setPosts] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -39,45 +67,35 @@ export default function BoardListPage() {
         return () => { isCurrentRequest = false; };
     }, [currentBoard]);
 
-    const handleBoardSelect = (category) => {
-        setCurrentBoard(category);
-        setIsDropdownOpen(false);
-    };
+    const handleBoardChange = (event) => {
+        const selectedCategory = BOARD_CATEGORIES.find(
+            (category) => category.value === event.target.value
+        );
 
-    const navItems = [
-        { label: '지도', icon: mapIcon, isActive: false },
-        { label: '산책', icon: walkIcon, isActive: false },
-        { label: '커뮤니티', icon: communityActiveIcon, isActive: true },
-        { label: '마이페이지', icon: mypageIcon, isActive: false },
-    ];
+        if (selectedCategory) setCurrentBoard(selectedCategory);
+    };
 
     return (
         <div className="mobile-container">
             <header className="header">커뮤니티</header>
 
-            <button
-                type="button"
-                className="board-selector"
-                onClick={() => setIsDropdownOpen((isOpen) => !isOpen)}
-            >
-                <span>{currentBoard.label}</span>
-                <span>{isDropdownOpen ? '∧' : '∨'}</span>
-            </button>
-
-            {isDropdownOpen && (
-                <div className="dropdown-menu">
+            <div className="list-board-selector">
+                <div className="board-type-selector">
+                    <label className="sr-only" htmlFor="board-list-type">게시판 선택</label>
+                    <select
+                        id="board-list-type"
+                        className="board-type-select"
+                        value={currentBoard.value}
+                        onChange={handleBoardChange}
+                    >
                     {BOARD_CATEGORIES.map((category) => (
-                        <button
-                            type="button"
-                            key={category.value}
-                            className="dropdown-item"
-                            onClick={() => handleBoardSelect(category)}
-                        >
+                        <option key={category.value} value={category.value}>
                             {category.label}
-                        </button>
+                        </option>
                     ))}
+                    </select>
                 </div>
-            )}
+            </div>
 
             <div className="post-list">
                 {isLoading && <p className="board-state-message">게시글을 불러오는 중입니다.</p>}
@@ -91,30 +109,29 @@ export default function BoardListPage() {
                         className="post-card"
                         onClick={() => navigate(`/board/${post.id}`)}
                     >
-                        {post.imageUrls?.[0] ? (
-                            <img className="post-image-placeholder" src={post.imageUrls[0]} alt="" />
-                        ) : (
-                            <div className="post-image-placeholder">🖼️</div>
-                        )}
-                        <div className="post-info-row">
-                            <span className="nickname">{post.nickname || '사용자'}</span>
-                            <span className="stats">조회 {post.viewCount}</span>
+                        <div className="post-card-main">
+                            <div className="post-card-copy">
+                                <h2 className="post-card-title">{post.title}</h2>
+                                <p className="post-card-summary">{post.content}</p>
+                            </div>
+                            <PostThumbnail imageUrl={post.imageUrls?.[0]} title={post.title} />
                         </div>
-                        <div className="post-content">{post.title}</div>
+                        <div className="post-card-footer">
+                            <span className="post-card-meta">
+                                {post.nickname || '사용자'} · {formatCreatedAt(post.createdAt)}
+                            </span>
+                            <span className="post-card-stats">
+                                <span>조회 {post.viewCount ?? 0}</span>
+                                <span>💬 {post.commentCount ?? 0}</span>
+                            </span>
+                        </div>
                     </article>
                 ))}
             </div>
 
             <button className="fab-write" onClick={() => navigate('/board/write')}>✏️</button>
 
-            <nav className="bottom-nav" aria-label="주요 메뉴">
-                {navItems.map((item) => (
-                    <div key={item.label} className={`nav-item ${item.isActive ? 'active' : ''}`}>
-                        <img src={item.icon} alt="" />
-                        <span>{item.label}</span>
-                    </div>
-                ))}
-            </nav>
+            <BottomNavigation />
         </div>
     );
 }
