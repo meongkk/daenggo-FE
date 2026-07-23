@@ -1,4 +1,4 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import BoardListPage from './features/board/pages/BoardListPage';
 import BoardDetailPage from './features/board/pages/BoardDetailPage';
 import BoardWritePage from './features/board/pages/BoardWritePage';
@@ -16,11 +16,33 @@ import PetFormPage from './features/pet/pages/PetFormPage';
 import GroupListPage from './features/group/pages/GroupListPage';
 import GroupFormPage from './features/group/pages/GroupFormPage';
 import GroupDetailPage from './features/group/pages/GroupDetailPage';
+import MapPage from './features/map/pages/MapPage';
+import WalkCalendarPage from './features/walk/pages/WalkCalendarPage';
+import WalkTrackingPage from './features/walk/pages/WalkTrackingPage';
+import WalkDetailPage from './features/walk/pages/WalkDetailPage';
+import WalkRouteMapPage from './features/walk/pages/WalkRouteMapPage';
+import { useEffect } from 'react';
 
-function App() {
+const KAKAO_KEY = import.meta.env.VITE_KAKAO_MAP_KEY;
+
+function App() { //테스트용
+
+  useEffect(() => {
+    // 이미 로드되어 있으면 다시 로드하지 않음
+    if (window.kakao && window.kakao.maps) return;
+
+    const script = document.createElement("script");
+    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_KEY}&autoload=false`;
+    script.async = true;
+
+    document.head.appendChild(script);
+  }, []);
+
+
   return (
-    <BrowserRouter>
-      <Routes>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/map" element={<MapPage />} />
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignUpPage />} />
@@ -40,13 +62,17 @@ function App() {
           <Route path="/mypage/groups/:groupId/edit" element={<GroupFormPage />} />
           <Route path="/board" element={<BoardListPage />} />
           <Route path="/board/write" element={<BoardWritePage />} />
-          <Route path="/board/:id" element={<BoardDetailPage />} />
+          <Route path="/walk" element={<WalkCalendarPage />} />
+          <Route path="/walk/tracking/:walkId" element={<WalkTrackingPage />}/>
+          <Route path="/walk/:walkId" element={<WalkDetailPage />} />
+          <Route path="/walk/:walkId/map" element={<WalkRouteMapPage />}/>
+          {/* <Route path="/place" element={<PlacePage />} /> */}
         </Route>
 
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
+          <Route path="*" element={<Navigate to="/login" replace />} />
+      </>
     </BrowserRouter>
   );
-}
+          }
 
 export default App;

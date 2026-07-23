@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import BottomNavigation from '../../../components/navigation/BottomNavigation';
-import { createBoardPost } from '../api/boardApi';
+import { createBoardPost, uploadBoardImages } from '../api/boardApi';
+import { BOARD_CATEGORIES } from '../boardConstants';
+import BottomNavigation from '../../../components/BottomNavigation';
 import './Board.css';
 
 const MAX_IMAGE_COUNT = 5;
@@ -13,7 +14,7 @@ const TEMP_WRITER_ID = Number(import.meta.env.VITE_BOARD_WRITER_ID ?? 1);
 export default function BoardWritePage() {
     const navigate = useNavigate();
 
-    const [boardType, setBoardType] = useState('소통 게시판');
+    const [boardType, setBoardType] = useState(BOARD_CATEGORIES[0].value);
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
     const [tradeStatus, setTradeStatus] = useState('SELL');
@@ -63,7 +64,7 @@ export default function BoardWritePage() {
         setImages((currentImages) => currentImages.filter((_, index) => index !== imageIndex));
     };
 
-    // 글 등록 API는 JSON만 받으므로 제목, 내용 등의 글 정보만 JSON으로 전송합니다.
+    // 이미지를 먼저 업로드한 뒤 반환된 URL과 게시글 정보를 JSON으로 전송한다.
     const handleSubmit = async (event) => {
         event.preventDefault();
 
@@ -72,14 +73,8 @@ export default function BoardWritePage() {
             return;
         }
 
-        if (boardType === '장터 게시판' && (!price || Number(price) < 0)) {
+        if (boardType === 'MARKET' && (!price || Number(price) < 0)) {
             alert('올바른 가격을 입력해주세요.');
-            return;
-        }
-
-        // 사진은 JSON 요청에 파일 그대로 넣을 수 없어서 별도의 사진 업로드 API가 필요합니다.
-        if (images.length > 0) {
-            setSubmitError('사진 업로드 API가 아직 연결되지 않았어요. 사진을 빼면 글은 바로 등록할 수 있습니다.');
             return;
         }
 
@@ -88,16 +83,23 @@ export default function BoardWritePage() {
             return;
         }
 
-        // 백엔드 CreateCommunityPostRequest가 요구하는 세 필드만 정확히 전송합니다.
-        const requestData = {
-            title: title.trim(),
-            content: content.trim(),
-            userId: TEMP_WRITER_ID,
-        };
-
         try {
             setIsSubmitting(true);
             setSubmitError('');
+
+            const imageUrls = await uploadBoardImages(images);
+            const requestData = {
+                category: boardType,
+                title: title.trim(),
+                content: content.trim(),
+                userId: TEMP_WRITER_ID,
+                imageUrls,
+                // 장터 글일 때만 가격과 거래 종류(팝니다/삽니다)를 백엔드에 함께 보냅니다.
+                ...(boardType === 'MARKET'
+                    ? { price: Number(price), tradeStatus }
+                    : {}),
+            };
+
             await createBoardPost(requestData);
             alert('게시글이 등록되었습니다.');
             navigate('/board');
@@ -127,20 +129,25 @@ export default function BoardWritePage() {
 
             <form className="write-form" onSubmit={handleSubmit}>
                 <div className="write-container">
-                    <div className="board-selector write-board-selector">
-                        <label className="sr-only" htmlFor="board-type">게시판 선택</label>
-                        <select
-                            id="board-type"
-                            value={boardType}
-                            onChange={(event) => setBoardType(event.target.value)}
-                        >
-                            <option value="소통 게시판">자유 게시판</option>
-                            <option value="장터 게시판">장터 게시판</option>
-                            <option value="시터 게시판">시터 게시판</option>
-                        </select>
+                    <div className="write-board-selector">
+                        <div className="board-type-selector">
+                            <label className="sr-only" htmlFor="board-type">게시판 선택</label>
+                            <select
+                                id="board-type"
+                                className="board-type-select"
+                                value={boardType}
+                                onChange={(event) => setBoardType(event.target.value)}
+                            >
+                                {BOARD_CATEGORIES.map((category) => (
+                                    <option key={category.value} value={category.value}>
+                                        {category.label}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
 
-                    {boardType === '장터 게시판' && (
+                    {boardType === 'MARKET' && (
                         <div className="market-options">
                             <div className="trade-status-buttons">
                                 <button
@@ -248,7 +255,7 @@ export default function BoardWritePage() {
                 </div>
             </form>
 
-            <BottomNavigation active="community" />
+            <BottomNavigation />
         </div>
     );
 }

@@ -1,0 +1,708 @@
+/* 산책 기능에서 공통으로 쓰는 색입니다. 색을 바꾸고 싶다면 이 값부터 수정하면 됩니다. */
+.walk-mobile-container {
+    --walk-orange: #f29b38;
+    --walk-orange-dark: #df8126;
+    --walk-ink: #3f3934;
+    --walk-muted: #918981;
+    --walk-line: #eee8e1;
+    width: 100%;
+    max-width: 400px;
+    height: 100vh;
+    height: 100dvh;
+    min-height: 640px;
+    margin: 0 auto;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    color: var(--walk-ink);
+    color-scheme: light;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    text-align: left;
+}
+
+.walk-mobile-container button,
+.walk-mobile-container input,
+.walk-mobile-container textarea {
+    font: inherit;
+}
+
+.walk-header {
+    height: 68px;
+    flex: 0 0 68px;
+    position: relative;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 1px solid #f7f4f0;
+    background: rgba(255, 255, 255, 0.96);
+    color: var(--walk-ink);
+    font-size: 17px;
+    font-weight: 750;
+}
+
+.walk-header-back,
+.walk-header-close {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    position: absolute;
+    top: 14px;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: #746c65;
+    cursor: pointer;
+}
+
+.walk-header-back {
+    left: 13px;
+    font-size: 30px;
+    line-height: 34px;
+}
+
+.walk-header-close {
+    right: 13px;
+    font-size: 24px;
+}
+
+.walk-header-back:active,
+.walk-header-close:active {
+    background: #fff2e4;
+}
+
+/* ===== 월별 달력 ===== */
+.walk-calendar-content {
+    min-height: 0;
+    flex: 1;
+    overflow-y: auto;
+    padding: 22px 22px 6px;
+}
+
+.walk-month-toolbar {
+    display: grid;
+    grid-template-columns: 40px 1fr 40px;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.walk-month-toolbar strong {
+    color: var(--walk-ink);
+    font-size: 19px;
+    text-align: center;
+}
+
+.walk-month-toolbar button {
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: #fff8ef;
+    color: var(--walk-orange-dark);
+    font-size: 28px;
+    line-height: 34px;
+    cursor: pointer;
+}
+
+.walk-weekdays,
+.walk-calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.walk-weekdays {
+    margin-bottom: 7px;
+    color: #a79f98;
+    font-size: 11px;
+    font-weight: 650;
+    text-align: center;
+}
+
+.walk-calendar-day {
+    min-height: 51px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #514a44;
+    font-size: 11px;
+}
+
+.walk-calendar-day.outside {
+    color: #d2ccc6;
+}
+
+.walk-paw-marker {
+    position: absolute;
+    width: 38px;
+    height: 38px;
+    object-fit: contain;
+    z-index: 1;
+    opacity: 1;
+}
+
+.walk-calendar-status {
+    min-height: 42px;
+    padding-top: 8px;
+    color: #a39b94;
+    font-size: 12px;
+    line-height: 1.45;
+    text-align: center;
+}
+
+.walk-error-message {
+    margin: 10px 0;
+    color: #c9584f;
+    font-size: 12px;
+    line-height: 1.5;
+    text-align: center;
+}
+
+.walk-primary-action-wrap {
+    flex: 0 0 auto;
+    padding: 10px 22px 16px;
+    background: #fff;
+}
+
+.walk-primary-button,
+.walk-secondary-button {
+    min-height: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 11px;
+    font-size: 14px;
+    font-weight: 750;
+    cursor: pointer;
+}
+
+.walk-primary-button {
+    width: 100%;
+    border: 1px solid var(--walk-orange);
+    background: var(--walk-orange);
+    color: #fff;
+    box-shadow: 0 8px 20px rgba(242, 155, 56, 0.18);
+}
+
+.walk-secondary-button {
+    border: 1px solid var(--walk-orange);
+    background: #fff;
+    color: var(--walk-orange-dark);
+}
+
+.walk-primary-button:disabled,
+.walk-secondary-button.disabled {
+    opacity: 0.58;
+    cursor: wait;
+}
+
+/* ===== GPS 기록 지도 ===== */
+.walk-tracking-page {
+    background: #e7e9f0;
+}
+
+.walk-floating-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    border-bottom: 0;
+    box-shadow: 0 3px 14px rgba(62, 67, 80, 0.06);
+}
+
+.walk-map-canvas {
+    min-height: 0;
+    flex: 1;
+    width: 100%;
+    height: 100%;
+
+    position: relative;
+    overflow: hidden;
+}
+
+.walk-map-canvas::before,
+.walk-map-canvas::after {
+    content: '';
+    position: absolute;
+    border: 10px solid rgba(255, 255, 255, 0.86);
+    border-radius: 45%;
+    transform: rotate(-18deg);
+}
+
+.walk-map-canvas::before {
+    width: 270px;
+    height: 380px;
+    top: 45px;
+    left: -190px;
+}
+
+.walk-map-canvas::after {
+    width: 310px;
+    height: 190px;
+    right: -225px;
+    top: 160px;
+}
+
+.walk-map-road {
+    width: 9px;
+    height: 590px;
+    position: absolute;
+    top: -70px;
+    background: rgba(255, 255, 255, 0.78);
+    transform-origin: center;
+}
+
+.road-one { left: 92px; transform: rotate(22deg); }
+.road-two { right: 74px; transform: rotate(-27deg); }
+.road-three { left: 212px; transform: rotate(72deg); }
+
+.walk-current-marker {
+    width: 50px;
+    height: 50px;
+    position: absolute;
+    z-index: 3;
+    top: 40%;
+    left: 50%;
+    display: grid;
+    place-items: center;
+    border: 5px solid rgba(255,255,255,.85);
+    border-radius: 50%;
+    background: var(--walk-orange);
+    box-shadow: 0 7px 18px rgba(98, 74, 45, 0.24);
+    font-size: 23px;
+    transform: translate(-50%, -50%);
+}
+
+.walk-current-marker i {
+    width: 62px;
+    height: 62px;
+    position: absolute;
+    z-index: -1;
+    border: 2px solid rgba(242, 155, 56, 0.42);
+    border-radius: 50%;
+    animation: walk-location-pulse 1.7s infinite;
+}
+
+@keyframes walk-location-pulse {
+    0% { transform: scale(.75); opacity: 1; }
+    100% { transform: scale(1.35); opacity: 0; }
+}
+
+.walk-map-photo-preview {
+    width: 66px;
+    height: 66px;
+    position: absolute;
+    z-index: 4;
+    top: 86px;
+    right: 18px;
+    border: 3px solid #fff;
+    border-radius: 13px;
+    box-shadow: 0 5px 16px rgba(0,0,0,.14);
+    object-fit: cover;
+}
+
+.walk-tracking-status {
+    position: absolute;
+    z-index: 4;
+    top: 84px;
+    left: 18px;
+    right: 94px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    color: #4d4844;
+    text-shadow: 0 1px 0 #fff;
+}
+
+.walk-tracking-status strong { font-size: 14px; }
+.walk-tracking-status span { color: #79736e; font-size: 11px; line-height: 1.4; }
+
+.walk-live-stats {
+    height: 72px;
+    position: absolute;
+    z-index: 5;
+    left: 18px;
+    right: 18px;
+    bottom: 82px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border-radius: 17px;
+    background: rgba(255,255,255,.94);
+    box-shadow: 0 8px 24px rgba(63, 66, 77, .09);
+}
+
+.walk-live-stats div,
+.walk-detail-stats div {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.walk-live-stats div + div::before,
+.walk-detail-stats div + div::before {
+    content: '';
+    width: 1px;
+    height: 30px;
+    position: absolute;
+    left: 0;
+    background: #ece7e2;
+}
+
+.walk-live-stats strong,
+.walk-detail-stats strong {
+    color: #4b4540;
+    font-size: 14px;
+    line-height: 1.2;
+}
+
+.walk-live-stats span,
+.walk-detail-stats span {
+    margin-top: 2px;
+    color: #aaa29b;
+    font-size: 9px;
+}
+
+.walk-map-error {
+    position: absolute;
+    z-index: 7;
+    left: 22px;
+    right: 22px;
+    bottom: 162px;
+    padding: 9px 12px;
+    border-radius: 9px;
+    background: rgba(255, 247, 246, .94);
+    color: #bb524b;
+    font-size: 11px;
+    line-height: 1.4;
+    text-align: center;
+}
+
+.walk-tracking-actions {
+    position: absolute;
+    z-index: 6;
+    left: 18px;
+    right: 18px;
+    bottom: 17px;
+    display: flex;
+    gap: 9px;
+}
+
+.walk-tracking-actions > * {
+    flex: 1;
+}
+
+.walk-visually-hidden {
+    width: 1px;
+    height: 1px;
+    position: absolute;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+/* ===== 산책 상세 ===== */
+.walk-detail-content {
+    min-height: 0;
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 20px 36px;
+    background: #fff;
+}
+
+.walk-detail-title-row {
+    min-height: 67px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--walk-line);
+}
+
+.walk-detail-date {
+    display: block;
+    margin-bottom: 5px;
+    color: #aaa29b;
+    font-size: 11px;
+}
+
+.walk-detail-title-row h1 {
+    margin: 0;
+    color: #3b3632;
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: -0.2px;
+    line-height: 1.35;
+    text-align: left;
+}
+
+.walk-detail-menu {
+    display: flex;
+    flex-shrink: 0;
+    gap: 5px;
+}
+
+.walk-detail-menu button {
+    padding: 5px 7px;
+    border: 0;
+    background: transparent;
+    color: #918981;
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.walk-detail-menu button.danger { color: #cf665e; }
+
+.walk-detail-title-input {
+    min-width: 0;
+    flex: 1;
+    padding: 10px 12px;
+    border: 1px solid #f1c48c;
+    border-radius: 9px;
+    outline: none;
+    background: #fffaf3;
+    color: var(--walk-ink);
+    font-weight: 700;
+}
+
+.walk-distance-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 17px 0 15px;
+}
+
+.walk-distance-row > strong {
+    color: #292725;
+    font-size: 39px;
+    line-height: 1;
+    letter-spacing: 1px;
+}
+
+.walk-distance-row small {
+    margin-left: 3px;
+    font-size: 18px;
+}
+
+.walk-pet-list {
+    display: flex;
+    gap: 5px;
+    font-size: 21px;
+}
+
+.walk-route-card {
+    overflow: hidden;
+    border-radius: 17px;
+    background: #edf3ff;
+}
+
+.walk-route-card > svg,
+.walk-route-empty {
+    width: 100%;
+    height: 190px;
+    display: block;
+    background:
+        linear-gradient(34deg, transparent 46%, rgba(255,255,255,.76) 47%, rgba(255,255,255,.76) 50%, transparent 51%),
+        linear-gradient(120deg, transparent 46%, rgba(255,255,255,.72) 47%, rgba(255,255,255,.72) 50%, transparent 51%),
+        #e7efff;
+}
+
+.walk-route-card polyline {
+    fill: none;
+    stroke: var(--walk-orange);
+    stroke-width: 3.4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    filter: drop-shadow(0 2px 2px rgba(225, 126, 38, .22));
+}
+
+.walk-route-card circle {
+    fill: #fff;
+    stroke: var(--walk-orange-dark);
+    stroke-width: 1.5;
+}
+
+.walk-route-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #88a7dc;
+}
+
+.walk-route-empty span { font-size: 38px; }
+.walk-route-empty p { margin-top: 7px; font-size: 12px; }
+
+.walk-detail-stats {
+    height: 68px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    background: rgba(255,255,255,.8);
+}
+
+.walk-memo-section {
+    padding: 20px 1px 8px;
+}
+
+.walk-memo-section h2 {
+    margin: 0 0 9px;
+    color: #514b46;
+    font-size: 13px;
+    font-weight: 750;
+}
+
+.walk-memo-section p {
+    color: #746d67;
+    font-size: 13px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+}
+
+.walk-memo-section textarea {
+    width: 100%;
+    min-height: 116px;
+    padding: 12px;
+    resize: vertical;
+    border: 1px solid #f1c48c;
+    border-radius: 10px;
+    outline: none;
+    background: #fffaf3;
+    color: var(--walk-ink);
+    line-height: 1.6;
+}
+
+.walk-edit-actions {
+    display: grid;
+    grid-template-columns: 1fr 1.4fr;
+    gap: 9px;
+    margin-top: 9px;
+}
+
+.walk-center-message,
+.walk-empty-detail {
+    color: #918981;
+    font-size: 13px;
+    text-align: center;
+}
+
+.walk-center-message { margin-top: 80px; }
+
+.walk-empty-detail {
+    padding: 90px 20px 25px;
+}
+
+.walk-empty-detail span { display: block; margin-bottom: 12px; font-size: 40px; }
+.walk-empty-detail p { line-height: 1.55; }
+.walk-empty-detail button {
+    margin-top: 18px;
+    padding: 10px 16px;
+    border: 1px solid #efb36f;
+    border-radius: 9px;
+    background: #fff8ef;
+    color: var(--walk-orange-dark);
+    cursor: pointer;
+}
+
+@media (max-height: 700px) {
+    .walk-calendar-day { min-height: 43px; }
+    .walk-route-card > svg,
+    .walk-route-empty { height: 160px; }
+}
+
+@media (max-width: 420px) {
+    .walk-mobile-container {
+        max-width: none;
+        min-height: 580px;
+    }
+}
+
+.walk-day-number {
+    position: relative;
+    z-index: 2;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.walk-static-map{
+    width:100%;
+    height:220px;
+    border-radius:18px;
+    overflow:hidden;
+}
+
+.walk-route-card{
+    position:relative;
+    cursor:pointer;
+}
+
+.walk-map-overlay{
+
+    position:absolute;
+
+    left:50%;
+    bottom:18px;
+
+    transform:translateX(-50%);
+
+    background:white;
+
+    padding:10px 18px;
+
+    border-radius:30px;
+
+    font-weight:600;
+
+    box-shadow:0 2px 12px rgba(0,0,0,.15);
+}
+
+.walk-calendar-day.has-walk {
+    cursor: pointer;
+}
+
+.walk-calendar-day.has-walk:hover {
+    transform: scale(1.05);
+}
+
+.walk-modal-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.4);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    z-index:999;
+    padding:20px;
+}
+
+
+.walk-complete-modal{
+    width:100%;
+    max-width:360px;
+    background:white;
+    border-radius:20px;
+    padding:24px;
+    box-sizing:border-box;
+}
+
+
+.walk-complete-modal input,
+.walk-complete-modal textarea{
+    width:100%;
+    box-sizing:border-box;
+    margin-bottom:15px;
+    padding:12px;
+    border-radius:10px;
+    border:1px solid #ddd;
+    font-size:14px;
+}
+
+
+.walk-complete-modal textarea{
+    height:120px;
+    resize:none;
+}
