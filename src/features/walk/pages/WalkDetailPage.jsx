@@ -100,6 +100,8 @@ export default function WalkDetailPage() {
             if (routeResult.status === 'fulfilled') {
                 // console.log("route", routeResult.value);
                 const routeData = routeResult.value;
+                console.log("받은 경로 데이터:", routeData);
+
                 setRoutePoints(Array.isArray(routeData) ? routeData : routeData?.routePoints ?? []);
             }
             setIsLoading(false);
@@ -222,7 +224,7 @@ export default function WalkDetailPage() {
 
         try {
             setErrorMessage('');
-            await deleteWalk(walkId);
+            await deleteWalk(walkId, TEMP_USER_ID);
             navigate('/walk');
         } catch (error) {
             setErrorMessage(
