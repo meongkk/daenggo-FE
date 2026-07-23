@@ -182,7 +182,7 @@
 /* 댓글 입력창 (하단 네비게이션 바로 위 고정) */
 .comment-input-area {
     position: absolute;
-    bottom: 60px; /* 네비게이션 바(60px) 바로 위에 위치 */
+    bottom: 72px; /* 공통 하단 네비게이션 바로 위에 위치 */
     width: 100%;
     padding: 10px 20px;
     background-color: white;

@@ -1,11 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import BottomNavigation from '../../../components/navigation/BottomNavigation';
 import { createBoardPost } from '../api/boardApi';
 import './Board.css';
-import mapIcon from '../../../assets/icons/map.svg';
-import walkIcon from '../../../assets/icons/walk.svg';
-import communityActiveIcon from '../../../assets/icons/community.svg';
-import mypageIcon from '../../../assets/icons/mypage.svg';
 
 const MAX_IMAGE_COUNT = 5;
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
@@ -113,13 +110,6 @@ export default function BoardWritePage() {
             setIsSubmitting(false);
         }
     };
-
-    const navItems = [
-        { label: '지도', icon: mapIcon, isActive: false },
-        { label: '산책', icon: walkIcon, isActive: false },
-        { label: '커뮤니티', icon: communityActiveIcon, isActive: true },
-        { label: '마이페이지', icon: mypageIcon, isActive: false },
-    ];
 
     return (
         <div className="mobile-container board-write-page">
@@ -258,17 +248,7 @@ export default function BoardWritePage() {
                 </div>
             </form>
 
-            <nav className="bottom-nav board-bottom-nav" aria-label="주요 메뉴">
-                {navItems.map((item) => (
-                    <div
-                        key={item.label}
-                        className={`nav-item ${item.isActive ? 'active' : ''}`}
-                    >
-                        <img src={item.icon} alt="" />
-                        <span>{item.label}</span>
-                    </div>
-                ))}
-            </nav>
+            <BottomNavigation active="community" />
         </div>
     );
 }
