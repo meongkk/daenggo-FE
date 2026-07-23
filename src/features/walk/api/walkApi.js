@@ -93,3 +93,11 @@ export async function uploadWalkPhoto(userId, walkId, imageFile, location) {
 export async function deleteWalkPhoto(userId, walkId, photoId) {
     await axios.delete(`${WALK_API_URL}/${walkId}/photos/${photoId}?userId=${userId}`);
 }
+
+export async function getWalkPhotos(userId, walkId) {
+    const response = await axios.get(
+        `${WALK_API_URL}/${walkId}/photos?userId=${userId}`
+    );
+
+    return response.data;
+}

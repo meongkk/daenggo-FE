@@ -706,3 +706,85 @@
     height:120px;
     resize:none;
 }
+
+/* 산책 사진 영역 */
+.walk-photo-section {
+    margin-top: 24px;
+}
+
+.walk-photo-section h2 {
+    font-size: 18px;
+    margin-bottom: 12px;
+}
+
+.walk-photo-list {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+}
+
+.walk-photo {
+    width: 110px;
+    height: 110px;
+    object-fit: cover;
+    border-radius: 12px;
+    cursor: pointer;
+}
+
+
+/* 사진 확대 모달 */
+.walk-photo-modal {
+    position: fixed;
+
+    top:0;
+    left:50%;
+
+    transform:translateX(-50%);
+
+    width:390px;
+    height:100vh;
+
+    background:rgba(0,0,0,0.8);
+
+    display:flex;
+    justify-content:center;
+    align-items:center;
+
+    z-index:999;
+}
+
+
+/* 모바일 화면 기준 확대 이미지 */
+.walk-photo-large {
+    width: 90%;
+    max-width: 360px;
+
+    max-height: 70vh;
+
+    object-fit: contain;
+
+    border-radius: 16px;
+}
+
+
+/* 닫기 버튼 */
+
+.walk-photo-close {
+    position:absolute;
+
+    top:20px;
+    right:20px;
+
+    width:40px;
+    height:40px;
+
+    border-radius:50%;
+    border:none;
+
+    font-size:24px;
+    background:white;
+
+    z-index:1000;
+
+    cursor: pointer;
+}
