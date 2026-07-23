@@ -14,8 +14,9 @@ function App() { //테스트용
           <Route path="/board/:id" element={<BoardDetailPage />} />
           <Route path="/board/write" element={<BoardWritePage />} />
           <Route path="/walk" element={<WalkCalendarPage />} />
-          <Route path="/walk/track" element={<WalkTrackingPage />} />
+          <Route path="/walk/tracking/:walkId" element={<WalkTrackingPage />}/>
           <Route path="/walk/:walkId" element={<WalkDetailPage />} />
+          {/* <Route path="/place" element={<PlacePage />} /> */}
         </Routes>
       </BrowserRouter>
   );

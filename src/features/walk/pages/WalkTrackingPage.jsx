@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
     completeWalk,
     saveWalkTrackPoints,
-    startWalk,
     uploadWalkPhoto,
 } from '../api/walkApi';
 import BottomNavigation from '../../../components/BottomNavigation';
 import './Walk.css';
+import KakaoMap from "../../../components/KakaoMap";
+
 
 const GPS_BATCH_SIZE = 5;
 
@@ -35,23 +36,30 @@ function formatDuration(totalSeconds) {
 }
 
 function formatPace(elapsedSeconds, distanceM) {
-    if (distanceM < 10) return `0′00″`;
-    const paceSeconds = Math.round(elapsedSeconds / (distanceM / 1000));
+    if (distanceM < 100) return `--′--″`;
+
+    const paceSeconds = Math.round(
+        elapsedSeconds / (distanceM / 1000)
+    );
+
     const minutes = Math.floor(paceSeconds / 60);
     const seconds = String(paceSeconds % 60).padStart(2, '0');
+
     return `${minutes}′${seconds}″`;
 }
 
 export default function WalkTrackingPage() {
     const navigate = useNavigate();
-    const [walkId, setWalkId] = useState(null);
-    const [phase, setPhase] = useState('idle');
+    const { walkId } = useParams();
+    const [phase, setPhase] = useState('active');
     const [elapsedSeconds, setElapsedSeconds] = useState(0);
     const [distanceM, setDistanceM] = useState(0);
     const [currentPosition, setCurrentPosition] = useState(null);
+    const [routePoints, setRoutePoints] = useState([]);
     const [savedPhotoUrl, setSavedPhotoUrl] = useState('');
-    const [message, setMessage] = useState('산책 시작을 누르면 GPS 기록이 시작돼요.');
+    const [message, setMessage] = useState('현재 위치를 기록하고 있어요.');
     const [errorMessage, setErrorMessage] = useState('');
+    
 
     const timerIdRef = useRef(null);
     const gpsWatchIdRef = useRef(null);
@@ -70,10 +78,22 @@ export default function WalkTrackingPage() {
         gpsWatchIdRef.current = null;
     }
 
-    useEffect(() => () => {
-        stopDeviceTracking();
-        if (photoPreviewRef.current) URL.revokeObjectURL(photoPreviewRef.current);
-    }, []);
+    useEffect(() => {
+        if (!walkId) return;
+    
+        setMessage('산책을 기록하고 있어요.');
+    
+        beginDeviceTracking(Number(walkId));
+    
+        return () => {
+            stopDeviceTracking();
+
+            if (photoPreviewRef.current) {
+                URL.revokeObjectURL(photoPreviewRef.current);
+            }
+        };
+
+    }, [walkId]);
 
     function queueGpsBatch(activeWalkId, points) {
         pendingGpsRequestRef.current = pendingGpsRequestRef.current
@@ -99,10 +119,19 @@ export default function WalkTrackingPage() {
 
         gpsWatchIdRef.current = navigator.geolocation.watchPosition(
             (position) => {
+               
+
+                console.log('GPS 들어옴', position.coords.latitude, position.coords.longitude);
                 const nextPosition = {
                     latitude: position.coords.latitude,
                     longitude: position.coords.longitude,
                 };
+
+                setRoutePoints((prev) => [
+                    ...prev,
+                    nextPosition
+                ]);
+
 
                 if (lastPositionRef.current) {
                     const movedDistance = getDistanceInMeters(lastPositionRef.current, nextPosition);
@@ -121,6 +150,10 @@ export default function WalkTrackingPage() {
 
                 if (gpsBufferRef.current.length >= GPS_BATCH_SIZE) {
                     const batch = gpsBufferRef.current.splice(0, GPS_BATCH_SIZE);
+                    console.log("서버 전송 데이터", {
+                        trackPoints: batch
+                    });
+                    
                     queueGpsBatch(activeWalkId, batch);
                 }
             },
@@ -132,29 +165,6 @@ export default function WalkTrackingPage() {
             },
             { enableHighAccuracy: true, timeout: 15000, maximumAge: 3000 },
         );
-    }
-
-    async function handleStartWalk() {
-        try {
-            setPhase('starting');
-            setErrorMessage('');
-            const data = await startWalk();
-            const newWalkId = data?.walkRecordId ?? data?.walkId ?? data?.id;
-
-            if (!newWalkId) throw new Error('산책 ID가 응답에 없습니다.');
-
-            setWalkId(newWalkId);
-            setPhase('active');
-            setMessage('산책을 기록하고 있어요. 안전하게 다녀오세요!');
-            beginDeviceTracking(newWalkId);
-        } catch (error) {
-            setPhase('idle');
-            setErrorMessage(
-                error.response?.data?.message
-                ?? error.message
-                ?? '산책 시작 API에 연결하지 못했어요.',
-            );
-        }
     }
 
     async function handlePhotoChange(event) {
@@ -191,7 +201,7 @@ export default function WalkTrackingPage() {
             }
             await pendingGpsRequestRef.current;
 
-            const data = await completeWalk(walkId, {
+            const data = await completeWalk(walkId, userId, {
                 title: `${new Date().toLocaleDateString('ko-KR')} 산책`,
                 memo: '',
                 petIds: [],
@@ -200,11 +210,19 @@ export default function WalkTrackingPage() {
             const completedWalkId = data?.walkRecordId ?? walkId;
             navigate(`/walk/${completedWalkId}`);
         } catch (error) {
+            console.log("산책 종료 에러:", error);
+            console.log("응답:", error.response?.data);
+
             setPhase('active');
             setErrorMessage(
                 error.response?.data?.message
                 ?? '산책 종료 정보를 저장하지 못했어요. 다시 눌러 주세요.',
             );
+            // setPhase('active');
+            // setErrorMessage(
+            //     error.response?.data?.message
+            //     ?? '산책 종료 정보를 저장하지 못했어요. 다시 눌러 주세요.',
+            // );
         }
     }
 
@@ -218,13 +236,11 @@ export default function WalkTrackingPage() {
             </header>
 
             <section className="walk-map-canvas" aria-label="산책 위치 지도 영역">
-                <div className="walk-map-road road-one" />
-                <div className="walk-map-road road-two" />
-                <div className="walk-map-road road-three" />
-                <div className="walk-current-marker" aria-label="현재 위치">
+                <KakaoMap currentPosition={currentPosition} routePoints={routePoints} />
+                {/* <div className="walk-current-marker" aria-label="현재 위치">
                     <span>🐾</span>
                     {currentPosition && <i />}
-                </div>
+                </div> */}
 
                 {savedPhotoUrl && (
                     <img className="walk-map-photo-preview" src={savedPhotoUrl} alt="방금 촬영한 산책 사진" />
@@ -244,38 +260,30 @@ export default function WalkTrackingPage() {
                 {errorMessage && <p className="walk-map-error" role="alert">{errorMessage}</p>}
 
                 <div className="walk-tracking-actions">
-                    {phase === 'idle' || phase === 'starting' ? (
-                        <button
-                            type="button"
-                            className="walk-primary-button"
-                            onClick={handleStartWalk}
-                            disabled={phase === 'starting'}
-                        >
-                            {phase === 'starting' ? '시작 정보를 저장하는 중...' : '산책 시작하기'}
-                        </button>
-                    ) : (
-                        <>
-                            <label className={`walk-secondary-button ${isActive ? '' : 'disabled'}`}>
-                                사진 찍기
-                                <input
-                                    className="walk-visually-hidden"
-                                    type="file"
-                                    accept="image/*"
-                                    capture="environment"
-                                    onChange={handlePhotoChange}
-                                    disabled={!isActive}
-                                />
-                            </label>
-                            <button
-                                type="button"
-                                className="walk-primary-button"
-                                onClick={handleCompleteWalk}
-                                disabled={phase === 'completing'}
-                            >
-                                {phase === 'completing' ? '저장 중...' : '산책 완료하기'}
-                            </button>
-                        </>
-                    )}
+
+                    <label className="walk-secondary-button">
+                        사진 찍기
+                        <input
+                            className="walk-visually-hidden"
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            onChange={handlePhotoChange}
+                        />
+                    </label>
+
+
+                    <button
+                        type="button"
+                        className="walk-primary-button"
+                        onClick={handleCompleteWalk}
+                        disabled={phase === 'completing'}
+                    >
+                        {phase === 'completing'
+                            ? '저장 중...'
+                            : '산책 완료하기'}
+                    </button>
+
                 </div>
             </section>
 

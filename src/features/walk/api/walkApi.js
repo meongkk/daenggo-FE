@@ -7,6 +7,7 @@ const TEMP_USER_ID = Number(
 // API 주소가 바뀌어도 이 값(.env) 하나만 수정하도록 기본 주소를 한곳에서 관리합니다.
 const WALK_API_URL = import.meta.env.VITE_WALK_API_URL ?? '/api/walks';
 
+
 // 산책 시작: 백엔드가 새 기록을 만들고 walkRecordId를 돌려줍니다.
 export async function startWalk() {
     const response = await axios.post(WALK_API_URL, {},
@@ -21,17 +22,17 @@ export async function startWalk() {
 // GPS 좌표를 한 개씩 보내지 않고 배열로 묶어 전송해 서버 요청 횟수를 줄입니다.
 export async function saveWalkTrackPoints(walkId, trackPoints) {
     const response = await axios.post(
-        `${WALK_API_URL}/${walkId}/track-points/batch`,
-        { trackPoints },
+        `${WALK_API_URL}/${walkId}/track-points/batch?userId=${userId}`,
+        {trackPoints},
         { headers: { 'Content-Type': 'application/json' } },
     );
     return response.data;
 }
 
 // 산책 종료: 마지막 거리와 참여한 반려동물 정보를 저장합니다.
-export async function completeWalk(walkId, requestData) {
+export async function completeWalk(walkId, userId, requestData) {
     const response = await axios.patch(
-        `${WALK_API_URL}/${walkId}/complete`,
+        `${WALK_API_URL}/${walkId}/complete?userId=${userId}`,
         requestData,
         { headers: { 'Content-Type': 'application/json' } },
     );
@@ -66,7 +67,7 @@ export async function deleteWalk(walkId) {
 // 달력에 발바닥 표시를 할 산책 날짜 목록을 월 단위로 가져옵니다.
 export async function getWalkCalendar(year, month) {
     const response = await axios.get(`${WALK_API_URL}/calendar`, {
-        params: { year, month },
+        params: { userId: TEMP_USER_ID, year, month },
     });
     return response.data;
 }
