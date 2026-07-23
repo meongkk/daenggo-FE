@@ -3,8 +3,9 @@ import { useNavigate, useParams } from 'react-router-dom';
 import {
     completeWalk,
     saveWalkTrackPoints,
-    uploadWalkPhoto,
+    uploadWalkPhoto
 } from '../api/walkApi';
+import {getMyPetsApi} from '../api/petApi.js';
 import BottomNavigation from '../../../components/BottomNavigation';
 import './Walk.css';
 import KakaoMap from "../../../components/KakaoMap";
@@ -55,18 +56,24 @@ export default function WalkTrackingPage() {
     const [elapsedSeconds, setElapsedSeconds] = useState(0);
     const [distanceM, setDistanceM] = useState(0);
     const [currentPosition, setCurrentPosition] = useState(null);
+    const [isLocationLoading, setIsLocationLoading] = useState(true);
     const [routePoints, setRoutePoints] = useState([]);
     const [savedPhotoUrl, setSavedPhotoUrl] = useState('');
-    const [message, setMessage] = useState('현재 위치를 기록하고 있어요.');
+    const [message, setMessage] = useState('현재 위치를 확인하고 있어요.');
     const [errorMessage, setErrorMessage] = useState('');
     const [showCompleteModal, setShowCompleteModal] = useState(false);
-const [walkTitle, setWalkTitle] = useState('');
-const [walkMemo, setWalkMemo] = useState('');
+    const [walkTitle, setWalkTitle] = useState('');
+    const [walkMemo, setWalkMemo] = useState('');
+    const [myPets, setMyPets] = useState([]);
+    const [selectedPetIds, setSelectedPetIds] = useState([]);
+    const [petSelectorOpen, setPetSelectorOpen] = useState(false);
+
     
 
     const timerIdRef = useRef(null);
     const gpsWatchIdRef = useRef(null);
     const lastPositionRef = useRef(null);
+    const walkStartTimeRef = useRef(null);
     const sequenceRef = useRef(0);
     const gpsBufferRef = useRef([]);
     const pendingGpsRequestRef = useRef(Promise.resolve());
@@ -98,6 +105,15 @@ const [walkMemo, setWalkMemo] = useState('');
 
     }, [walkId]);
 
+    useEffect(() => {
+
+        if(showCompleteModal){
+            getMyPets();
+        }
+    
+    }, [showCompleteModal]);
+
+
     function queueGpsBatch(activeWalkId, points) {
         pendingGpsRequestRef.current = pendingGpsRequestRef.current
             .then(() => saveWalkTrackPoints(activeWalkId, TEMP_USER_ID, points))
@@ -108,12 +124,37 @@ const [walkMemo, setWalkMemo] = useState('');
                 );
             });
     }
+    
+    useEffect(() => {
+
+        if(showCompleteModal){
+            getMyPets();
+        }
+    
+    }, [showCompleteModal]);
+    
+    
+    // 여기에 추가
+    async function getMyPets(){
+    
+        try {
+    
+            // TODO: 실제 API 연결
+            const res = await getMyPetsApi();
+    
+            setMyPets(res.data);
+    
+        } catch(error){
+    
+            console.log("반려동물 조회 실패", error);
+    
+        }
+    
+    }
+    
 
     function beginDeviceTracking(activeWalkId) {
-        const startedAt = Date.now();
-        timerIdRef.current = window.setInterval(() => {
-            setElapsedSeconds(Math.floor((Date.now() - startedAt) / 1000));
-        }, 1000);
+        
 
         if (!navigator.geolocation) {
             setErrorMessage('이 브라우저는 GPS 위치 기능을 지원하지 않아요.');
@@ -122,7 +163,15 @@ const [walkMemo, setWalkMemo] = useState('');
 
         gpsWatchIdRef.current = navigator.geolocation.watchPosition(
             (position) => {
+
+                const startedAt = Date.now();
+                
+                timerIdRef.current = window.setInterval(() => {
+                    setElapsedSeconds(Math.floor((Date.now() - startedAt) / 1000));
+                }, 1000);
                
+
+                setIsLocationLoading(false);
 
                 console.log('GPS 들어옴', position.coords.latitude, position.coords.longitude);
                 const nextPosition = {
@@ -233,6 +282,27 @@ const [walkMemo, setWalkMemo] = useState('');
         // }
     }
 
+    function togglePet(petId){
+
+        setSelectedPetIds((prev)=>{
+    
+            if(prev.includes(petId)){
+    
+                return prev.filter(
+                    id => id !== petId
+                );
+    
+            }
+    
+            return [
+                ...prev,
+                petId
+            ];
+    
+        });
+    
+    }
+
     async function saveCompletedWalk() {
 
         try {
@@ -256,7 +326,7 @@ const [walkMemo, setWalkMemo] = useState('');
                 {
                     title: walkTitle,
                     memo: walkMemo,
-                    petIds: [],
+                    petIds: selectedPetIds,
                     distanceM: Number(distanceM.toFixed(2)),
                 }
             );
@@ -294,6 +364,18 @@ const [walkMemo, setWalkMemo] = useState('');
             </header>
 
             <section className="walk-map-canvas" aria-label="산책 위치 지도 영역">
+            {isLocationLoading ? (
+                <div className="walk-location-loading">
+                    <p>📍</p>
+                    <strong>현재 위치를 확인하고 있어요.</strong>
+                    <span>잠시만 기다려 주세요.</span>
+                </div>
+            ) : (
+                <KakaoMap 
+                    currentPosition={currentPosition} 
+                    routePoints={routePoints} 
+                />
+            )}
                 <KakaoMap currentPosition={currentPosition} routePoints={routePoints} />
                 {/* <div className="walk-current-marker" aria-label="현재 위치">
                     <span>🐾</span>
@@ -367,6 +449,78 @@ const [walkMemo, setWalkMemo] = useState('');
                             onChange={(e)=>setWalkMemo(e.target.value)}
                             placeholder="산책 메모"
                         />
+
+                        <h3>
+                            함께 산책한 반려동물
+                        </h3>
+
+
+                        <div
+                            className="pet-selector-box"
+                            onClick={() => setPetSelectorOpen(!petSelectorOpen)}
+                        >
+
+                        {
+                            selectedPetIds.length === 0
+                            ?
+                            "반려동물 선택"
+                            :
+                            myPets
+                                .filter(
+                                    pet => selectedPetIds.includes(pet.petId)
+                                )
+                                .map(
+                                    pet => pet.name
+                                )
+                                .join(", ")
+                        }
+
+                        ▼
+
+                        </div>
+
+
+
+                        {
+                        petSelectorOpen && (
+
+                            <div className="pet-selector-list">
+
+                            {
+                                myPets.map((pet)=>(
+
+                                    <label
+                                        key={pet.petId}
+                                        className="pet-item"
+                                    >
+
+                                        <input
+                                            type="checkbox"
+                                            checked={
+                                                selectedPetIds.includes(
+                                                    pet.petId
+                                                )
+                                            }
+                                            onChange={()=>
+                                                togglePet(
+                                                    pet.petId
+                                                )
+                                            }
+                                        />
+
+                                        {pet.name}
+
+                                    </label>
+
+                                ))
+                            }
+
+                            </div>
+
+                        )
+                        }
+
+
 
 
                         <button

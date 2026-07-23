@@ -60,8 +60,8 @@ export async function updateWalk(walkId, requestData) {
 }
 
 // 선택한 산책 기록과 연결된 경로/사진을 삭제합니다.
-export async function deleteWalk(walkId) {
-    await axios.delete(`${WALK_API_URL}/${walkId}`);
+export async function deleteWalk(walkId, userId) {
+    await axios.delete(`${WALK_API_URL}/${walkId}?userId=${userId}`);
 }
 
 // 달력에 발바닥 표시를 할 산책 날짜 목록을 월 단위로 가져옵니다.
@@ -92,4 +92,12 @@ export async function uploadWalkPhoto(userId, walkId, imageFile, location) {
 // 등록된 사진 한 장을 photoId로 찾아 삭제합니다.
 export async function deleteWalkPhoto(userId, walkId, photoId) {
     await axios.delete(`${WALK_API_URL}/${walkId}/photos/${photoId}?userId=${userId}`);
+}
+
+export async function getWalkPhotos(userId, walkId) {
+    const response = await axios.get(
+        `${WALK_API_URL}/${walkId}/photos?userId=${userId}`
+    );
+
+    return response.data;
 }

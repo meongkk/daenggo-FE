@@ -4,6 +4,7 @@ import {
     deleteWalk,
     getWalkDetail,
     getWalkRoute,
+    getWalkPhotos,
     updateWalk,
 } from '../api/walkApi';
 import BottomNavigation from '../../../components/BottomNavigation';
@@ -59,12 +60,14 @@ export default function WalkDetailPage() {
     const navigate = useNavigate();
     const [detail, setDetail] = useState(null);
     const [routePoints, setRoutePoints] = useState([]);
+    const [photos, setPhotos] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isEditing, setIsEditing] = useState(false);
     const [title, setTitle] = useState('');
     const [memo, setMemo] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
     const [isSaving, setIsSaving] = useState(false);
+    const [selectedPhoto, setSelectedPhoto] = useState(null);
     const routeDrawing = useMemo(() => makeRouteDrawing(routePoints), [routePoints]);
 
     // 산책 불러오기
@@ -74,9 +77,10 @@ export default function WalkDetailPage() {
         async function loadWalk() {
             setIsLoading(true);
             setErrorMessage('');
-            const [detailResult, routeResult] = await Promise.allSettled([
+            const [detailResult, routeResult, photoResult] = await Promise.allSettled([
                 getWalkDetail(walkId, TEMP_USER_ID),
                 getWalkRoute(walkId, TEMP_USER_ID),
+                getWalkPhotos(TEMP_USER_ID, walkId),
             ]);
 
             if (!isCurrentRequest) return;
@@ -96,9 +100,16 @@ export default function WalkDetailPage() {
             if (routeResult.status === 'fulfilled') {
                 // console.log("route", routeResult.value);
                 const routeData = routeResult.value;
+                console.log("받은 경로 데이터:", routeData);
+
                 setRoutePoints(Array.isArray(routeData) ? routeData : routeData?.routePoints ?? []);
             }
             setIsLoading(false);
+
+            if (photoResult.status === 'fulfilled') {
+                console.log("사진 데이터:", photoResult.value);
+                setPhotos(photoResult.value);
+            }
         }
 
         loadWalk();
@@ -213,7 +224,7 @@ export default function WalkDetailPage() {
 
         try {
             setErrorMessage('');
-            await deleteWalk(walkId);
+            await deleteWalk(walkId, TEMP_USER_ID);
             navigate('/walk');
         } catch (error) {
             setErrorMessage(
@@ -300,6 +311,24 @@ export default function WalkDetailPage() {
                             </div>
                         </div>
 
+                        {photos.length > 0 && (
+                            <div className="walk-photo-section">
+                                <h2>멍추억</h2>
+
+                                <div className="walk-photo-list">
+                                    {photos.map((photo) => (
+                                        <img
+                                            key={photo.walkPhotoId}
+                                            src={`http://localhost:8080${photo.imageUrl}`}
+                                            alt="산책 사진"
+                                            className="walk-photo"
+                                            onClick={() => setSelectedPhoto(photo)}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
                         <div className="walk-memo-section">
                             <h2>메모 내용</h2>
                             {isEditing ? (
@@ -334,6 +363,26 @@ export default function WalkDetailPage() {
                 )}
 
                 {errorMessage && <p className="walk-error-message" role="alert">{errorMessage}</p>}
+                {selectedPhoto && (
+                    <div
+                        className="walk-photo-modal"
+                        onClick={() => setSelectedPhoto(null)}
+                    >
+                        <img
+                            src={`http://localhost:8080${selectedPhoto.imageUrl}`}
+                            alt="확대된 산책 사진"
+                            className="walk-photo-large"
+                            onClick={(e) => e.stopPropagation()}
+                        />
+
+                        <button
+                            className="walk-photo-close"
+                            onClick={() => setSelectedPhoto(null)}
+                        >
+                            ×
+                        </button>
+                    </div>
+                )}
             </section>
 
             <BottomNavigation />
