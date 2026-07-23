@@ -8,7 +8,7 @@ import {
 import BottomNavigation from '../../../components/BottomNavigation';
 import './Walk.css';
 import KakaoMap from "../../../components/KakaoMap";
-
+const TEMP_USER_ID = Number(import.meta.env.VITE_BOARD_WRITER_ID ?? 1);
 
 const GPS_BATCH_SIZE = 5;
 
@@ -97,7 +97,7 @@ export default function WalkTrackingPage() {
 
     function queueGpsBatch(activeWalkId, points) {
         pendingGpsRequestRef.current = pendingGpsRequestRef.current
-            .then(() => saveWalkTrackPoints(activeWalkId, points))
+            .then(() => saveWalkTrackPoints(activeWalkId, TEMP_USER_ID, points))
             .catch((error) => {
                 setErrorMessage(
                     error.response?.data?.message
@@ -201,7 +201,7 @@ export default function WalkTrackingPage() {
             }
             await pendingGpsRequestRef.current;
 
-            const data = await completeWalk(walkId, userId, {
+            const data = await completeWalk(walkId, TEMP_USER_ID, {
                 title: `${new Date().toLocaleDateString('ko-KR')} 산책`,
                 memo: '',
                 petIds: [],
@@ -218,11 +218,6 @@ export default function WalkTrackingPage() {
                 error.response?.data?.message
                 ?? '산책 종료 정보를 저장하지 못했어요. 다시 눌러 주세요.',
             );
-            // setPhase('active');
-            // setErrorMessage(
-            //     error.response?.data?.message
-            //     ?? '산책 종료 정보를 저장하지 못했어요. 다시 눌러 주세요.',
-            // );
         }
     }
 

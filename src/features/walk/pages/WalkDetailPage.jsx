@@ -9,6 +9,8 @@ import {
 import BottomNavigation from '../../../components/BottomNavigation';
 import './Walk.css';
 
+const TEMP_USER_ID = Number(import.meta.env.VITE_BOARD_WRITER_ID ?? 1);
+
 function formatDuration(totalSeconds = 0) {
     const hours = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
     const minutes = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
@@ -72,8 +74,8 @@ export default function WalkDetailPage() {
             setIsLoading(true);
             setErrorMessage('');
             const [detailResult, routeResult] = await Promise.allSettled([
-                getWalkDetail(walkId),
-                getWalkRoute(walkId),
+                getWalkDetail(walkId, TEMP_USER_ID),
+                getWalkRoute(walkId, TEMP_USER_ID),
             ]);
 
             if (!isCurrentRequest) return;

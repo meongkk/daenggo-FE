@@ -20,7 +20,7 @@ export async function startWalk() {
 }
 
 // GPS 좌표를 한 개씩 보내지 않고 배열로 묶어 전송해 서버 요청 횟수를 줄입니다.
-export async function saveWalkTrackPoints(walkId, trackPoints) {
+export async function saveWalkTrackPoints(walkId, userId, trackPoints) {
     const response = await axios.post(
         `${WALK_API_URL}/${walkId}/track-points/batch?userId=${userId}`,
         {trackPoints},
@@ -40,14 +40,14 @@ export async function completeWalk(walkId, userId, requestData) {
 }
 
 // 산책 상세 정보(제목, 시간, 거리, 메모 등)를 가져옵니다.
-export async function getWalkDetail(walkId) {
-    const response = await axios.get(`${WALK_API_URL}/${walkId}`);
+export async function getWalkDetail(walkId, userId) {
+    const response = await axios.get(`${WALK_API_URL}/${walkId}?userId=${userId}`);
     return response.data;
 }
 
 // 지도에 그릴 GPS 경로 좌표 목록을 가져옵니다.
-export async function getWalkRoute(walkId) {
-    const response = await axios.get(`${WALK_API_URL}/${walkId}/route`);
+export async function getWalkRoute(walkId , userId) {
+    const response = await axios.get(`${WALK_API_URL}/${walkId}/route?userId=${userId}`);
     return response.data;
 }
 
