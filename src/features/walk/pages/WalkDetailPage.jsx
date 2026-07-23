@@ -311,7 +311,7 @@ export default function WalkDetailPage() {
 
                         {photos.length > 0 && (
                             <div className="walk-photo-section">
-                                <h2>산책 사진</h2>
+                                <h2>멍추억</h2>
 
                                 <div className="walk-photo-list">
                                     {photos.map((photo) => (

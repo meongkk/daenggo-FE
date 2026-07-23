@@ -55,18 +55,21 @@ export default function WalkTrackingPage() {
     const [elapsedSeconds, setElapsedSeconds] = useState(0);
     const [distanceM, setDistanceM] = useState(0);
     const [currentPosition, setCurrentPosition] = useState(null);
+    const [isLocationLoading, setIsLocationLoading] = useState(true);
     const [routePoints, setRoutePoints] = useState([]);
     const [savedPhotoUrl, setSavedPhotoUrl] = useState('');
-    const [message, setMessage] = useState('현재 위치를 기록하고 있어요.');
+    const [message, setMessage] = useState('현재 위치를 확인하고 있어요.');
     const [errorMessage, setErrorMessage] = useState('');
     const [showCompleteModal, setShowCompleteModal] = useState(false);
 const [walkTitle, setWalkTitle] = useState('');
 const [walkMemo, setWalkMemo] = useState('');
+
     
 
     const timerIdRef = useRef(null);
     const gpsWatchIdRef = useRef(null);
     const lastPositionRef = useRef(null);
+    const walkStartTimeRef = useRef(null);
     const sequenceRef = useRef(0);
     const gpsBufferRef = useRef([]);
     const pendingGpsRequestRef = useRef(Promise.resolve());
@@ -110,10 +113,7 @@ const [walkMemo, setWalkMemo] = useState('');
     }
 
     function beginDeviceTracking(activeWalkId) {
-        const startedAt = Date.now();
-        timerIdRef.current = window.setInterval(() => {
-            setElapsedSeconds(Math.floor((Date.now() - startedAt) / 1000));
-        }, 1000);
+        
 
         if (!navigator.geolocation) {
             setErrorMessage('이 브라우저는 GPS 위치 기능을 지원하지 않아요.');
@@ -122,7 +122,15 @@ const [walkMemo, setWalkMemo] = useState('');
 
         gpsWatchIdRef.current = navigator.geolocation.watchPosition(
             (position) => {
+
+                const startedAt = Date.now();
+                
+                timerIdRef.current = window.setInterval(() => {
+                    setElapsedSeconds(Math.floor((Date.now() - startedAt) / 1000));
+                }, 1000);
                
+
+                setIsLocationLoading(false);
 
                 console.log('GPS 들어옴', position.coords.latitude, position.coords.longitude);
                 const nextPosition = {
@@ -294,6 +302,18 @@ const [walkMemo, setWalkMemo] = useState('');
             </header>
 
             <section className="walk-map-canvas" aria-label="산책 위치 지도 영역">
+            {isLocationLoading ? (
+                <div className="walk-location-loading">
+                    <p>📍</p>
+                    <strong>현재 위치를 확인하고 있어요.</strong>
+                    <span>잠시만 기다려 주세요.</span>
+                </div>
+            ) : (
+                <KakaoMap 
+                    currentPosition={currentPosition} 
+                    routePoints={routePoints} 
+                />
+            )}
                 <KakaoMap currentPosition={currentPosition} routePoints={routePoints} />
                 {/* <div className="walk-current-marker" aria-label="현재 위치">
                     <span>🐾</span>
