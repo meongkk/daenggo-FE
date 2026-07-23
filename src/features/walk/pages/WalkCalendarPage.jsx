@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getWalkCalendar } from '../api/walkApi';
+import { getWalkCalendar, startWalk } from '../api/walkApi';
 import BottomNavigation from '../../../components/BottomNavigation';
 import './Walk.css';
+import pawImage from '../../../assets/icons/paw.png';
 
 const WEEKDAYS = ['월', '화', '수', '목', '금', '토', '일'];
 
@@ -30,6 +31,25 @@ function createCalendarDays(monthDate) {
 export default function WalkCalendarPage() {
     const navigate = useNavigate();
     const [monthDate, setMonthDate] = useState(() => new Date());
+
+    
+    async function handleStartWalk() {
+        try {
+            const data = await startWalk();
+
+            const walkRecordId = data?.walkRecordId;
+
+            if (!walkRecordId) {
+                throw new Error('산책 기록 ID가 없습니다.');
+            }
+
+            navigate(`/walk/tracking/${walkRecordId}`);
+
+        } catch (error) {
+            console.error(error);
+            alert('산책을 시작할 수 없습니다.');
+        }
+    }
     const [walkDates, setWalkDates] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [errorMessage, setErrorMessage] = useState('');
@@ -38,9 +58,19 @@ export default function WalkCalendarPage() {
     const month = monthDate.getMonth() + 1;
     const calendarDays = useMemo(() => createCalendarDays(monthDate), [monthDate]);
     const walkDateKeys = useMemo(
-        () => new Set(walkDates.map((item) => String(item?.walkDate ?? item?.date ?? item).slice(0, 10))),
-        [walkDates],
+        () => new Set(walkDates.map(item => item.walkDate)),
+        [walkDates]
     );
+
+    const walkMap = useMemo(() => {
+        const map = new Map();
+    
+        walkDates.forEach(item => {
+            map.set(item.walkDate, item.walkRecordId);
+        });
+    
+        return map;
+    }, [walkDates]);
 
     useEffect(() => {
         let isCurrentRequest = true;
@@ -50,8 +80,15 @@ export default function WalkCalendarPage() {
                 setIsLoading(true);
                 setErrorMessage('');
                 const data = await getWalkCalendar(year, month);
-                const dates = Array.isArray(data) ? data : data?.walkDates ?? [];
-                if (isCurrentRequest) setWalkDates(dates);
+
+                console.log(data);
+                
+                const walks = data.walks ?? [];
+                console.log(walkDates);
+
+                if (isCurrentRequest) {
+                    setWalkDates(walks);
+                }
             } catch (error) {
                 if (isCurrentRequest) {
                     setWalkDates([]);
@@ -97,11 +134,27 @@ export default function WalkCalendarPage() {
                         return (
                             <div
                                 key={dateKey}
-                                className={`walk-calendar-day ${isCurrentMonth ? '' : 'outside'}`}
+                                className={`walk-calendar-day ${isCurrentMonth ? '' : 'outside'} ${hasWalk ? 'has-walk' : ''}`}
                                 aria-label={`${dateKey}${hasWalk ? ', 산책 기록 있음' : ''}`}
+                                onClick={() => {
+                                    if (!hasWalk) return;
+
+                                    const walkId = walkMap.get(dateKey);
+
+                                    navigate(`/walk/${walkId}`)
+                                }}
                             >
-                                <span>{String(date.getDate()).padStart(2, '0')}</span>
-                                {hasWalk && <span className="walk-paw-marker" aria-hidden="true">🐾</span>}
+                                {hasWalk && (
+                                    <img
+                                        src={pawImage}
+                                        className="walk-paw-marker"
+                                        alt="산책 기록 있음"
+                                    />
+                                )}
+
+                                <span className="walk-day-number">
+                                    {String(date.getDate()).padStart(2, '0')}
+                                </span>
                             </div>
                         );
                     })}
@@ -117,7 +170,7 @@ export default function WalkCalendarPage() {
                 <button
                     type="button"
                     className="walk-primary-button"
-                    onClick={() => navigate('/walk/track')}
+                    onClick={handleStartWalk}
                 >
                     산책 등록하기
                 </button>
