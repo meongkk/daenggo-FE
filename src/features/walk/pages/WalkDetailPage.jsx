@@ -19,7 +19,7 @@ function formatDuration(totalSeconds = 0) {
 }
 
 function formatPace(totalSeconds = 0) {
-    if (!totalSeconds) return `0′00″`;
+    if (!totalSeconds) return `--′--″`;
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = String(Math.round(totalSeconds % 60)).padStart(2, '0');
     return `${minutes}′${seconds}″`;
@@ -67,6 +67,7 @@ export default function WalkDetailPage() {
     const [isSaving, setIsSaving] = useState(false);
     const routeDrawing = useMemo(() => makeRouteDrawing(routePoints), [routePoints]);
 
+    // 산책 불러오기
     useEffect(() => {
         let isCurrentRequest = true;
 
@@ -101,6 +102,66 @@ export default function WalkDetailPage() {
         loadWalk();
         return () => { isCurrentRequest = false; };
     }, [walkId]);
+
+
+    // 지도 그리기
+    useEffect(() => {
+
+        if (!window.kakao) return;
+        if (routePoints.length === 0) return;
+    
+        window.kakao.maps.load(() => {
+    
+            const first = routePoints[0];
+    
+            const container =
+                document.getElementById("walk-static-map");
+    
+            const options = {
+                center: new window.kakao.maps.LatLng(
+                    first.latitude,
+                    first.longitude
+                ),
+                level: 5
+            };
+    
+            const map = new window.kakao.maps.Map(
+                container,
+                options
+            );
+    
+            const path = routePoints.map(point =>
+                new window.kakao.maps.LatLng(
+                    point.latitude,
+                    point.longitude
+                )
+            );
+    
+            const polyline = new window.kakao.maps.Polyline({
+                path,
+                strokeWeight: 5,
+                strokeColor: "#E86339",
+                strokeOpacity: 0.9
+            });
+    
+            polyline.setMap(map);
+    
+            const bounds =
+                new window.kakao.maps.LatLngBounds();
+    
+            path.forEach(p => bounds.extend(p));
+    
+            map.setBounds(bounds);
+    
+            // 드래그 막기
+            map.setDraggable(false);
+    
+            // 확대 막기
+            map.setZoomable(false);
+    
+        });
+    
+    }, [routePoints]);
 
     async function handleSave() {
         if (!title.trim()) {
@@ -198,22 +259,31 @@ export default function WalkDetailPage() {
                             </div>
                         </div>
 
-                        <div className="walk-route-card">
-                            {routePoints.length > 0 ? (
-                                <svg viewBox="0 0 100 100" role="img" aria-label="저장된 산책 경로">
-                                    <polyline points={routeDrawing} />
-                                    <circle cx={routeDrawing.split(' ')[0]?.split(',')[0]} cy={routeDrawing.split(' ')[0]?.split(',')[1]} r="2.6" />
-                                </svg>
-                            ) : (
-                                <div className="walk-route-empty">
-                                    <span>🗺️</span>
-                                    <p>저장된 GPS 경로가 아직 없어요.</p>
-                                </div>
-                            )}
+                        <div
+                            className="walk-route-card"
+                            onClick={() => navigate(`/walk/${walkId}/map`)}
+                        >
+                            <div
+                                id="walk-static-map"
+                                className="walk-static-map"
+                                onClick={() => navigate(`/walk/${walkId}/map`)}
+                            />
+
                             <div className="walk-detail-stats">
-                                <div><strong>{formatStartTime(detail.startedAt)}</strong><span>시작 시간</span></div>
-                                <div><strong>{formatPace(detail.avgPaceSec)}</strong><span>페이스</span></div>
-                                <div><strong>{formatDuration(detail.durationSec)}</strong><span>총 산책 시간</span></div>
+                                <div>
+                                    <strong>{formatStartTime(detail.startedAt)}</strong>
+                                    <span>시작 시간</span>
+                                </div>
+
+                                <div>
+                                    <strong>{formatPace(detail.avgPaceSec)}</strong>
+                                    <span>페이스</span>
+                                </div>
+
+                                <div>
+                                    <strong>{formatDuration(detail.durationSec)}</strong>
+                                    <span>총 산책 시간</span>
+                                </div>
                             </div>
                         </div>
 

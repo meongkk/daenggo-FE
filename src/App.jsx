@@ -5,6 +5,7 @@ import BoardWritePage from './features/board/pages/BoardWritePage';
 import WalkCalendarPage from './features/walk/pages/WalkCalendarPage';
 import WalkTrackingPage from './features/walk/pages/WalkTrackingPage';
 import WalkDetailPage from './features/walk/pages/WalkDetailPage';
+import WalkRouteMapPage from './features/walk/pages/WalkRouteMapPage';
 
 function App() { //테스트용
   return (
@@ -16,6 +17,7 @@ function App() { //테스트용
           <Route path="/walk" element={<WalkCalendarPage />} />
           <Route path="/walk/tracking/:walkId" element={<WalkTrackingPage />}/>
           <Route path="/walk/:walkId" element={<WalkDetailPage />} />
+          <Route path="/walk/:walkId/map" element={<WalkRouteMapPage />}/>
           {/* <Route path="/place" element={<PlacePage />} /> */}
         </Routes>
       </BrowserRouter>
