@@ -178,7 +178,7 @@ export default function WalkTrackingPage() {
 
         try {
             setErrorMessage('');
-            await uploadWalkPhoto(walkId, imageFile, currentPosition);
+            await uploadWalkPhoto(TEMP_USER_ID, walkId, imageFile, currentPosition);
             setMessage('사진을 산책 기록에 저장했어요.');
         } catch (error) {
             setErrorMessage(
