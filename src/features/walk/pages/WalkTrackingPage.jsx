@@ -59,6 +59,9 @@ export default function WalkTrackingPage() {
     const [savedPhotoUrl, setSavedPhotoUrl] = useState('');
     const [message, setMessage] = useState('현재 위치를 기록하고 있어요.');
     const [errorMessage, setErrorMessage] = useState('');
+    const [showCompleteModal, setShowCompleteModal] = useState(false);
+const [walkTitle, setWalkTitle] = useState('');
+const [walkMemo, setWalkMemo] = useState('');
     
 
     const timerIdRef = useRef(null);
@@ -191,34 +194,94 @@ export default function WalkTrackingPage() {
     async function handleCompleteWalk() {
         if (!walkId) return;
         stopDeviceTracking();
+
         setPhase('completing');
         setErrorMessage('');
 
+        setWalkTitle(
+            `${new Date().toLocaleDateString('ko-KR')} 산책`
+        );
+
+        setShowCompleteModal(true);
+
+        return;
+
+        // try {
+        //     if (gpsBufferRef.current.length > 0) {
+        //         const lastBatch = gpsBufferRef.current.splice(0);
+        //         queueGpsBatch(walkId, lastBatch);
+        //     }
+        //     await pendingGpsRequestRef.current;
+
+        //     const data = await completeWalk(walkId, TEMP_USER_ID, {
+        //         title: `${new Date().toLocaleDateString('ko-KR')} 산책`,
+        //         memo: '',
+        //         petIds: [],
+        //         distanceM: Number(distanceM.toFixed(2)),
+        //     });
+        //     const completedWalkId = data?.walkRecordId ?? walkId;
+        //     navigate(`/walk/${completedWalkId}`);
+        // } catch (error) {
+        //     console.log("산책 종료 에러:", error);
+        //     console.log("응답:", error.response?.data);
+
+        //     setPhase('active');
+        //     setErrorMessage(
+        //         error.response?.data?.message
+        //         ?? '산책 종료 정보를 저장하지 못했어요. 다시 눌러 주세요.',
+        //     );
+        // }
+    }
+
+    async function saveCompletedWalk() {
+
         try {
+    
             if (gpsBufferRef.current.length > 0) {
                 const lastBatch = gpsBufferRef.current.splice(0);
-                queueGpsBatch(walkId, lastBatch);
+    
+                queueGpsBatch(
+                    walkId,
+                    lastBatch
+                );
             }
+    
+    
             await pendingGpsRequestRef.current;
-
-            const data = await completeWalk(walkId, TEMP_USER_ID, {
-                title: `${new Date().toLocaleDateString('ko-KR')} 산책`,
-                memo: '',
-                petIds: [],
-                distanceM: Number(distanceM.toFixed(2)),
-            });
-            const completedWalkId = data?.walkRecordId ?? walkId;
+    
+    
+            const data = await completeWalk(
+                walkId,
+                TEMP_USER_ID,
+                {
+                    title: walkTitle,
+                    memo: walkMemo,
+                    petIds: [],
+                    distanceM: Number(distanceM.toFixed(2)),
+                }
+            );
+    
+    
+            const completedWalkId =
+                data?.walkRecordId ?? walkId;
+    
+    
             navigate(`/walk/${completedWalkId}`);
-        } catch (error) {
-            console.log("산책 종료 에러:", error);
-            console.log("응답:", error.response?.data);
-
+    
+    
+        } catch(error){
+    
+            console.log(error);
+    
             setPhase('active');
+    
             setErrorMessage(
                 error.response?.data?.message
-                ?? '산책 종료 정보를 저장하지 못했어요. 다시 눌러 주세요.',
+                ?? '산책 저장 실패'
             );
+    
         }
+    
     }
 
     const isActive = phase === 'active';
@@ -281,6 +344,42 @@ export default function WalkTrackingPage() {
 
                 </div>
             </section>
+
+            {showCompleteModal && (
+                <div className="walk-modal-overlay">
+
+                    <div className="walk-complete-modal">
+
+                        <h2>
+                            산책 기록 저장
+                        </h2>
+
+
+                        <input
+                            value={walkTitle}
+                            onChange={(e)=>setWalkTitle(e.target.value)}
+                            placeholder="산책 제목"
+                        />
+
+
+                        <textarea
+                            value={walkMemo}
+                            onChange={(e)=>setWalkMemo(e.target.value)}
+                            placeholder="산책 메모"
+                        />
+
+
+                        <button
+                            className="walk-primary-button"
+                            onClick={saveCompletedWalk}
+                        >
+                            저장하기
+                        </button>
+
+                    </div>
+
+                </div>
+            )}
 
             <BottomNavigation />
         </main>

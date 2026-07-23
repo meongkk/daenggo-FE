@@ -82,6 +82,7 @@ export default function WalkDetailPage() {
             if (!isCurrentRequest) return;
 
             if (detailResult.status === 'fulfilled') {
+                // console.log("detail", detailResult.value);
                 setDetail(detailResult.value);
                 setTitle(detailResult.value?.title ?? '산책 기록');
                 setMemo(detailResult.value?.memo ?? '');
@@ -93,6 +94,7 @@ export default function WalkDetailPage() {
             }
 
             if (routeResult.status === 'fulfilled') {
+                // console.log("route", routeResult.value);
                 const routeData = routeResult.value;
                 setRoutePoints(Array.isArray(routeData) ? routeData : routeData?.routePoints ?? []);
             }
@@ -107,9 +109,21 @@ export default function WalkDetailPage() {
     // 지도 그리기
     useEffect(() => {
 
-        if (!window.kakao) return;
-        if (routePoints.length === 0) return;
+        console.log("window.kakao =", window.kakao);
+        console.log("routePoints =", routePoints);
     
+        if (!window.kakao) {
+            console.log("카카오 없음");
+            return;
+        }
+    
+        if (routePoints.length === 0) {
+            console.log("좌표 없음");
+            return;
+        }
+    
+        console.log("지도 생성 시작");
+        
         window.kakao.maps.load(() => {
     
             const first = routePoints[0];
@@ -261,7 +275,6 @@ export default function WalkDetailPage() {
 
                         <div
                             className="walk-route-card"
-                            onClick={() => navigate(`/walk/${walkId}/map`)}
                         >
                             <div
                                 id="walk-static-map"

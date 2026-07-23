@@ -659,3 +659,50 @@
 
     box-shadow:0 2px 12px rgba(0,0,0,.15);
 }
+
+.walk-calendar-day.has-walk {
+    cursor: pointer;
+}
+
+.walk-calendar-day.has-walk:hover {
+    transform: scale(1.05);
+}
+
+.walk-modal-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.4);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    z-index:999;
+    padding:20px;
+}
+
+
+.walk-complete-modal{
+    width:100%;
+    max-width:360px;
+    background:white;
+    border-radius:20px;
+    padding:24px;
+    box-sizing:border-box;
+}
+
+
+.walk-complete-modal input,
+.walk-complete-modal textarea{
+    width:100%;
+    box-sizing:border-box;
+    margin-bottom:15px;
+    padding:12px;
+    border-radius:10px;
+    border:1px solid #ddd;
+    font-size:14px;
+}
+
+
+.walk-complete-modal textarea{
+    height:120px;
+    resize:none;
+}

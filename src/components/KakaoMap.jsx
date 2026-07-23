@@ -1,14 +1,12 @@
 import { useEffect, useRef } from "react";
-import pawImage from '../assets/icons/paw.png';
 
 const KAKAO_KEY = import.meta.env.VITE_KAKAO_MAP_KEY;
 
 export function KakaoMap({ currentPosition, routePoints  }) {
 
-    const markerRef = useRef(null);
     const mapRef = useRef(null);
     const polylineRef = useRef(null);
-
+    const circleRef = useRef(null);
     // 1. 지도 생성
     useEffect(() => {
 
@@ -59,27 +57,29 @@ export function KakaoMap({ currentPosition, routePoints  }) {
     
                 mapRef.current = map;
     
-    
-                const markerImage =
-                    new window.kakao.maps.MarkerImage(
-                        pawImage,
-                        new window.kakao.maps.Size(40,40),
-                        {
-                            offset: new window.kakao.maps.Point(20,20)
-                        }
-                    );
-    
-    
-                const marker =
-                    new window.kakao.maps.Marker({
-                        map,
-                        image: markerImage,
-                        position: center
-                    });
-    
-    
-                markerRef.current = marker;
-    
+                const content = `
+                    <div style="
+                        width:16px;
+                        height:16px;
+                        background:#E86339;
+                        border:3px solid white;
+                        border-radius:50%;
+                        box-shadow:0 0 0 6px rgba(232,99,57,0.25);
+                    "></div>
+                    `;
+                    
+                const circle = new kakao.maps.CustomOverlay({
+                    position: center,
+                    content: content,
+                    yAnchor: 0.5,
+                    xAnchor: 0.5,
+                });
+                
+                
+                circle.setMap(map);
+                
+                circleRef.current = circle;
+
     
                 window.addEventListener(
                     "resize",
@@ -99,7 +99,7 @@ export function KakaoMap({ currentPosition, routePoints  }) {
   useEffect(() => {
 
     if (!currentPosition) return;
-    if (!markerRef.current) return;
+    if (!circleRef.current) return;
 
 
     const latlng =
@@ -109,8 +109,11 @@ export function KakaoMap({ currentPosition, routePoints  }) {
         );
 
 
-    markerRef.current.setPosition(latlng);
+    circleRef.current.setPosition(latlng);
 
+    // if (circleRef.current) {
+    //     circleRef.current.setPosition(latlng);
+    // }
 
     if (mapRef.current) {
         mapRef.current.panTo(latlng);

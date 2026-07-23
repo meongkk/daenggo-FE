@@ -58,9 +58,19 @@ export default function WalkCalendarPage() {
     const month = monthDate.getMonth() + 1;
     const calendarDays = useMemo(() => createCalendarDays(monthDate), [monthDate]);
     const walkDateKeys = useMemo(
-        () => new Set(walkDates.map((item) => String(item?.walkDate ?? item?.date ?? item).slice(0, 10))),
-        [walkDates],
+        () => new Set(walkDates.map(item => item.walkDate)),
+        [walkDates]
     );
+
+    const walkMap = useMemo(() => {
+        const map = new Map();
+    
+        walkDates.forEach(item => {
+            map.set(item.walkDate, item.walkRecordId);
+        });
+    
+        return map;
+    }, [walkDates]);
 
     useEffect(() => {
         let isCurrentRequest = true;
@@ -70,8 +80,15 @@ export default function WalkCalendarPage() {
                 setIsLoading(true);
                 setErrorMessage('');
                 const data = await getWalkCalendar(year, month);
-                const dates = Array.isArray(data) ? data : data?.walkDates ?? [];
-                if (isCurrentRequest) setWalkDates(dates);
+
+                console.log(data);
+                
+                const walks = data.walks ?? [];
+                console.log(walkDates);
+
+                if (isCurrentRequest) {
+                    setWalkDates(walks);
+                }
             } catch (error) {
                 if (isCurrentRequest) {
                     setWalkDates([]);
@@ -119,6 +136,13 @@ export default function WalkCalendarPage() {
                                 key={dateKey}
                                 className={`walk-calendar-day ${isCurrentMonth ? '' : 'outside'} ${hasWalk ? 'has-walk' : ''}`}
                                 aria-label={`${dateKey}${hasWalk ? ', 산책 기록 있음' : ''}`}
+                                onClick={() => {
+                                    if (!hasWalk) return;
+
+                                    const walkId = walkMap.get(dateKey);
+
+                                    navigate(`/walk/${walkId}`)
+                                }}
                             >
                                 {hasWalk && (
                                     <img

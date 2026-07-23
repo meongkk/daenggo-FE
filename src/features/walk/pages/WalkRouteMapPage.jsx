@@ -52,17 +52,43 @@ export default function WalkRouteMapPage() {
 
                     polyline.setMap(map);
 
-                    // 시작 마커
-                    new window.kakao.maps.Marker({
+                    // 출발(초록)
+                    const startOverlay = new window.kakao.maps.CustomOverlay({
                         position: path[0],
-                        map,
+                        content: `
+                            <div style="
+                                width:16px;
+                                height:16px;
+                                background:#34C759;
+                                border:3px solid white;
+                                border-radius:50%;
+                                box-shadow:0 0 0 6px rgba(52,199,89,0.25);
+                            "></div>
+                        `,
+                        xAnchor: 0.5,
+                        yAnchor: 0.5,
                     });
 
-                    // 종료 마커
-                    new window.kakao.maps.Marker({
+                    startOverlay.setMap(map);
+
+                    // 도착(빨강)
+                    const endOverlay = new window.kakao.maps.CustomOverlay({
                         position: path[path.length - 1],
-                        map,
+                        content: `
+                            <div style="
+                                width:16px;
+                                height:16px;
+                                background:#E86339;
+                                border:3px solid white;
+                                border-radius:50%;
+                                box-shadow:0 0 0 6px rgba(232,99,57,0.25);
+                            "></div>
+                        `,
+                        xAnchor: 0.5,
+                        yAnchor: 0.5,
                     });
+
+                    endOverlay.setMap(map);
 
                     // 경로가 모두 보이도록
                     const bounds = new window.kakao.maps.LatLngBounds();
