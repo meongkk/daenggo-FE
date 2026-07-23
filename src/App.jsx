@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import BoardListPage from './features/board/pages/BoardListPage';
 import BoardDetailPage from './features/board/pages/BoardDetailPage';
 import BoardWritePage from './features/board/pages/BoardWritePage';
+import MapPage from './features/map/pages/MapPage';
 import WalkCalendarPage from './features/walk/pages/WalkCalendarPage';
 import WalkTrackingPage from './features/walk/pages/WalkTrackingPage';
 import WalkDetailPage from './features/walk/pages/WalkDetailPage';
@@ -10,6 +11,7 @@ function App() { //테스트용
   return (
       <BrowserRouter>
         <Routes>
+          <Route path="/map" element={<MapPage />} />
           <Route path="/board" element={<BoardListPage />} />
           <Route path="/board/:id" element={<BoardDetailPage />} />
           <Route path="/board/write" element={<BoardWritePage />} />

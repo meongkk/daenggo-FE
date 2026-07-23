@@ -94,6 +94,10 @@ export default function BoardWritePage() {
                 content: content.trim(),
                 userId: TEMP_WRITER_ID,
                 imageUrls,
+                // 장터 글일 때만 가격과 거래 종류(팝니다/삽니다)를 백엔드에 함께 보냅니다.
+                ...(boardType === 'MARKET'
+                    ? { price: Number(price), tradeStatus }
+                    : {}),
             };
 
             await createBoardPost(requestData);

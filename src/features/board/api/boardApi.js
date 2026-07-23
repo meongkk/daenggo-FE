@@ -56,6 +56,39 @@ export async function getBoardPosts(category) {
     });
     return response.data;
 }
+/**
+ * 작성자 본인의 게시글을 삭제한다.
+ *
+ * @param {string|number} postId 삭제할 게시글 ID
+ * @param {number} userId 삭제를 요청한 사용자 ID
+ */
+export async function deleteBoardPost(postId, userId) {
+    await axios.delete(`${COMMUNITY_POST_API_URL}/${postId}`, {
+        data: {
+            userId,
+        },
+        headers: {
+            'Content-Type': 'application/json',
+        },
+    });
+}
+
+/**
+ * 작성자 본인의 게시글 제목과 내용을 수정한다.
+ *
+ * @param {string|number} postId 수정할 게시글 ID
+ * @param {{userId: number, title: string, content: string, imageUrls: string[]}} requestData 수정 요청 데이터
+ * @returns {Promise<object>} 수정된 게시글
+ */
+export async function updateBoardPost(postId, requestData) {
+    const response = await axios.patch(
+        `${COMMUNITY_POST_API_URL}/${postId}`,
+        requestData,
+        { headers: { 'Content-Type': 'application/json' } }
+    );
+
+    return response.data;
+}
 
 /**
  * 게시글 상세를 조회합니다. 상세 API 호출 시 백엔드에서 조회수가 증가합니다.
@@ -95,4 +128,35 @@ export async function createBoardComment(postId, requestData) {
         { headers: { 'Content-Type': 'application/json' } }
     );
     return response.data;
+}
+
+/**
+ * 작성자 본인의 댓글 내용을 수정한다.
+ *
+ * @param {string|number} postId 게시글 ID
+ * @param {string|number} commentId 수정할 댓글 ID
+ * @param {{content: string, userId: number}} requestData 수정 내용과 작성자 ID
+ * @returns {Promise<object>} 수정된 댓글
+ */
+export async function updateBoardComment(postId, commentId, requestData) {
+    const response = await axios.patch(
+        `${COMMUNITY_POST_API_URL}/${postId}/comments/${commentId}`,
+        requestData,
+        { headers: { 'Content-Type': 'application/json' } }
+    );
+    return response.data;
+}
+
+/**
+ * 작성자 본인의 댓글을 삭제한다.
+ *
+ * @param {string|number} postId 게시글 ID
+ * @param {string|number} commentId 삭제할 댓글 ID
+ * @param {number} userId 삭제를 요청한 사용자 ID
+ */
+export async function deleteBoardComment(postId, commentId, userId) {
+    await axios.delete(
+        `${COMMUNITY_POST_API_URL}/${postId}/comments/${commentId}`,
+        { params: { userId } }
+    );
 }
