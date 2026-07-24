@@ -5,7 +5,8 @@ import {
     saveWalkTrackPoints,
     uploadWalkPhoto
 } from '../api/walkApi';
-import {getMyPetsApi} from '../api/petApi.js';
+// import {getMyPetsApi} from '../api/petApi.js'; // 펫 등록 수정 중
+import { getMyPets as fetchMyPets } from '../../pet/api/petApi';
 import BottomNavigation from '../../../components/BottomNavigation';
 import './Walk.css';
 import KakaoMap from "../../../components/KakaoMap";
@@ -104,13 +105,7 @@ export default function WalkTrackingPage() {
 
     }, [walkId]);
 
-    useEffect(() => {
 
-        if(showCompleteModal){
-            getMyPets();
-        }
-    
-    }, [showCompleteModal]);
 
 
     function queueGpsBatch(activeWalkId, points) {
@@ -123,33 +118,47 @@ export default function WalkTrackingPage() {
                 );
             });
     }
-    
-    useEffect(() => {
 
-        if(showCompleteModal){
-            getMyPets();
+    useEffect(() => {
+        if (!showCompleteModal) return;
+
+        async function loadMyPets() {
+            try {
+                setErrorMessage('');
+
+                const pets = await fetchMyPets();
+
+                setMyPets(pets);
+            } catch (error) {
+                setErrorMessage(
+                    error.response?.data?.message
+                    ?? '반려동물 목록을 불러오지 못했어요.'
+                );
+            }
         }
-    
+
+        loadMyPets();
     }, [showCompleteModal]);
+
+
+
+    // useEffect(() => { 펫 등록 추가 중
+    //     if(showCompleteModal){
+    //         getMyPets();
+    //     }
+    // }, [showCompleteModal]);
     
     
-    // 여기에 추가
-    async function getMyPets(){
-    
-        try {
-    
-            // TODO: 실제 API 연결
-            const res = await getMyPetsApi();
-    
-            setMyPets(res.data);
-    
-        } catch(error){
-    
-            console.log("반려동물 조회 실패", error);
-    
-        }
-    
-    }
+    // // 여기에 추가
+    // async function getMyPets(){ 이게 2개 있다고 지우라는데?
+    //     try {
+    //         // TODO: 실제 API 연결
+    //         const res = await getMyPetsApi();
+    //         setMyPets(res.data);
+    //     } catch(error){
+    //         console.log("반려동물 조회 실패", error);
+    //     }
+    // }
     
 
     function beginDeviceTracking(activeWalkId) {
