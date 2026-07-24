@@ -30,6 +30,7 @@ import WalkRouteMapPage from './features/walk/pages/WalkRouteMapPage';
 
 const KAKAO_KEY = import.meta.env.VITE_KAKAO_MAP_KEY;
 
+
 function App() {
   useEffect(() => {
     // 이미 로드되어 있으면 다시 로드하지 않음

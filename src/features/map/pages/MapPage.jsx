@@ -14,8 +14,8 @@ const DEFAULT_CENTER = { latitude: 37.5665, longitude: 126.978 };
 
 // 백엔드 Place.category에 실제로 저장되는 값과 정확히 맞춥니다.
 const PLACE_CATEGORIES = [
-  { id: 'restaurant', label: '맛집·카페', icon: '🍴', value: 'RESTAURANT' },
   { id: 'all', label: '전체 장소', icon: '🐾', value: null },
+  { id: 'restaurant', label: '맛집·카페', icon: '🍴', value: 'RESTAURANT' },
   { id: 'tourist', label: '관광지', icon: '🌲', value: 'TOURIST' },
   { id: 'stay', label: '숙소', icon: '🏠', value: 'LODGING' },
 ];
@@ -132,8 +132,10 @@ function MapPage() {
   const markersRef = useRef([]);
   const currentLocationMarkerRef = useRef(null);
   const requestSequenceRef = useRef(0);
-  const activeCategoryValueRef = useRef('RESTAURANT');
+  const activeCategoryValueRef = useRef('ALL');
   const activeKeywordRef = useRef('');
+  // 사용자가 검색·카테고리·현재 위치 버튼을 누르기 전에는 장소 API를 호출하지 않습니다.
+  const hasRequestedPlacesRef = useRef(false);
 
   // useState 값이 바뀌면 React가 지도 위 버튼과 장소 카드를 다시 그립니다.
   const [sdkState, setSdkState] = useState('loading');
@@ -142,12 +144,13 @@ function MapPage() {
   const [places, setPlaces] = useState([]);
   const [selectedPlace, setSelectedPlace] = useState(null);
   const [isPlaceDetailOpen, setIsPlaceDetailOpen] = useState(false);
-  const [activeCategory, setActiveCategory] = useState('restaurant');
+  // 처음에는 어떤 카테고리도 선택하지 않아 주황색 활성 버튼이 없습니다.
+  const [activeCategory, setActiveCategory] = useState(null);
   const [favoritePlaces, setFavoritePlaces] = useState(readFavoritePlaces);
   const [isFavoritesOpen, setIsFavoritesOpen] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
-  const [notice, setNotice] = useState('');
+  const [notice, setNotice] = useState('장소 종류를 누르거나 검색하면 주변 장소를 보여드려요.');
 
   /** 카카오 지도의 현재 경계를 백엔드가 요구하는 네 좌표로 바꿉니다. */
   const readMapBounds = useCallback(() => {
@@ -247,9 +250,12 @@ function MapPage() {
         mapRef.current = initializedMap;
         setSdkState('ready');
 
-        idleHandler = () => loadPlacesFromBackend();
+        idleHandler = () => {
+          if (hasRequestedPlacesRef.current) {
+            loadPlacesFromBackend();
+          }
+        };
         kakao.maps.event.addListener(initializedMap, 'idle', idleHandler);
-        loadPlacesFromBackend();
       })
       .catch((error) => {
         if (disposed) return;
@@ -348,11 +354,33 @@ function MapPage() {
 
   const handleSearchSubmit = (event) => {
     event.preventDefault();
+    hasRequestedPlacesRef.current = true;
+    if (!activeCategory) {
+      activeCategoryValueRef.current = 'ALL';
+      setActiveCategory('all');
+    }
     activeKeywordRef.current = query.trim();
     loadPlacesFromBackend();
   };
 
   const handleCategoryClick = (category) => {
+    // 이미 켜진 카테고리를 다시 누르면 조회를 중단하고 지도 마커를 모두 지웁니다.
+    if (activeCategory === category.id) {
+      requestSequenceRef.current += 1;
+      hasRequestedPlacesRef.current = false;
+      activeCategoryValueRef.current = 'ALL';
+      activeKeywordRef.current = '';
+      setActiveCategory(null);
+      setQuery('');
+      setPlaces([]);
+      setSelectedPlace(null);
+      setIsPlaceDetailOpen(false);
+      setIsSearching(false);
+
+      return;
+    }
+
+    hasRequestedPlacesRef.current = true;
     activeCategoryValueRef.current = category.value;
     activeKeywordRef.current = '';
     setQuery('');
@@ -386,6 +414,7 @@ function MapPage() {
     }
 
     setIsLocating(true);
+    hasRequestedPlacesRef.current = true;
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
         const kakao = kakaoRef.current;
@@ -412,11 +441,10 @@ function MapPage() {
   };
 
   const handleCustomizedPlaces = () => {
-    activeCategoryValueRef.current = 'RESTAURANT';
-    activeKeywordRef.current = '';
-    setActiveCategory('restaurant');
-    setQuery('');
-    loadPlacesFromBackend();
+    const restaurantCategory = PLACE_CATEGORIES.find(
+      (category) => category.id === 'restaurant',
+    );
+    handleCategoryClick(restaurantCategory);
   };
 
   const isSelectedFavorite = selectedPlace
@@ -511,16 +539,16 @@ function MapPage() {
               <span aria-hidden="true">⌖</span>
             </button>
 
-            {!selectedPlace && (
-              <button
-                className="map-custom-place"
-                type="button"
-                onClick={handleCustomizedPlaces}
-              >
-                <span aria-hidden="true">☷</span>
-                반려동물 맛집·카페
-              </button>
-            )}
+            {/*{!selectedPlace && (*/}
+            {/*  // <button*/}
+            {/*  //   className="map-custom-place"*/}
+            {/*  //   type="button"*/}
+            {/*  //   onClick={handleCustomizedPlaces}*/}
+            {/*  // >*/}
+            {/*  //   <span aria-hidden="true">☷</span>*/}
+            {/*  //   반려동물 맛집·카페*/}
+            {/*  // </button>*/}
+            {/*)}*/}
           </>
         )}
 
