@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import BottomNavigation from '../../../components/navigation/BottomNavigation';
+import BottomNavigation from '../../../components/BottomNavigation';
 import AppIcon from '../../../components/ui/AppIcon';
 import { getApiErrorMessage } from '../../../lib/apiError';
 import MyPageHeader from '../../mypage/components/MyPageHeader';
@@ -68,7 +68,7 @@ export default function GroupListPage() {
           </button>
         ))}
       </main>
-      <BottomNavigation active="mypage" />
+      <BottomNavigation />
     </div>
   );
 }

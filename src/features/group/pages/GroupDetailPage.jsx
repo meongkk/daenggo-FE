@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import BottomNavigation from '../../../components/navigation/BottomNavigation';
+import BottomNavigation from '../../../components/BottomNavigation';
 import { getApiErrorMessage } from '../../../lib/apiError';
 import MyPageHeader from '../../mypage/components/MyPageHeader';
 import ProfileAvatar from '../../mypage/components/ProfileAvatar';
@@ -100,7 +100,7 @@ export default function GroupDetailPage() {
       <div className="mobile-screen mypage-screen mypage-subpage">
         <MyPageHeader title="그룹 상세" />
         <p className="group-status">그룹 정보를 불러오는 중...</p>
-        <BottomNavigation active="mypage" />
+        <BottomNavigation />
       </div>
     );
   }
@@ -183,7 +183,7 @@ export default function GroupDetailPage() {
           </>
         )}
       </main>
-      <BottomNavigation active="mypage" />
+      <BottomNavigation />
     </div>
   );
 }

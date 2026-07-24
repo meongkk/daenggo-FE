@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import BottomNavigation from '../../../components/navigation/BottomNavigation';
+import BottomNavigation from '../../../components/BottomNavigation';
 import AppIcon from '../../../components/ui/AppIcon';
 import { getApiErrorMessage } from '../../../lib/apiError';
 import {
@@ -86,7 +86,7 @@ export default function PetsPage() {
           </article>
         ))}
       </main>
-      <BottomNavigation active="mypage" />
+      <BottomNavigation />
     </div>
   );
 }

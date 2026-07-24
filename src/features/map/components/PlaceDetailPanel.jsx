@@ -178,22 +178,7 @@ function PlaceDetailPanel({
                 <dt>카카오 전화</dt>
                 <dd>{kakaoPlace.phone || '전화번호 정보 없음'}</dd>
               </div>
-              <div>
-                <dt>카카오 좌표</dt>
-                <dd>
-                  {kakaoPlace.latitude}, {kakaoPlace.longitude}
-                </dd>
-              </div>
-              {kakaoPlace.distance && (
-                <div>
-                  <dt>검색 거리</dt>
-                  <dd>{kakaoPlace.distance}m</dd>
-                </div>
-              )}
-              <div>
-                <dt>카카오 ID</dt>
-                <dd>{kakaoPlace.id}</dd>
-              </div>
+
             </dl>
           </section>
         )}

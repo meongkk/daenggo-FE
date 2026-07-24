@@ -180,7 +180,12 @@ export default function BoardListPage() {
                 })}
             </div>
 
-            <button className="fab-write" onClick={() => navigate('/board/write')}>✏️</button>
+            <button
+                className="fab-write"
+                onClick={() => navigate(`/board/write?category=${currentBoard.value}`)}
+            >
+                ✏️
+            </button>
 
             <BottomNavigation />
         </div>

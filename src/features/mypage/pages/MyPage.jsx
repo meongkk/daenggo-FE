@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import BottomNavigation from '../../../components/navigation/BottomNavigation';
+import BottomNavigation from '../../../components/BottomNavigation';
 import AppIcon from '../../../components/ui/AppIcon';
 import { getApiErrorMessage } from '../../../lib/apiError';
 import { logout } from '../../auth/api/authApi';
@@ -131,7 +131,7 @@ export default function MyPage() {
           <button type="button" className="mypage-withdraw" onClick={() => setAccountDialog('withdraw')}>회원 탈퇴</button>
         </div>
       </main>
-      <BottomNavigation active="mypage" />
+      <BottomNavigation />
 
       {accountDialog && (
         <div className="logout-overlay" role="presentation" onMouseDown={() => !isAccountSubmitting && setAccountDialog(null)}>

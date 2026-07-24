@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import BottomNavigation from '../../../components/navigation/BottomNavigation';
+import BottomNavigation from '../../../components/BottomNavigation';
 import { getApiErrorMessage } from '../../../lib/apiError';
 import { clearTokens } from '../../auth/api/tokenStorage';
 import {
@@ -168,7 +168,7 @@ export default function ProfileEditPage() {
           </button>
         </form>
       </main>
-      <BottomNavigation active="mypage" />
+      <BottomNavigation />
     </div>
   );
 }

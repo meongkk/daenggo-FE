@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { createBoardPost, uploadBoardImages } from '../api/boardApi';
 import { BOARD_CATEGORIES } from '../boardConstants';
 import BottomNavigation from '../../../components/BottomNavigation';
@@ -9,12 +9,18 @@ const MAX_IMAGE_COUNT = 5;
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 // 로그인 기능이 붙기 전까지 사용할 개발용 작성자 ID입니다. 로그인 구현 후 실제 사용자 ID로 바꾸면 됩니다.
-const TEMP_WRITER_ID = Number(import.meta.env.VITE_BOARD_WRITER_ID ?? 1);
 
 export default function BoardWritePage() {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const categoryFromUrl = searchParams.get('category');
 
-    const [boardType, setBoardType] = useState(BOARD_CATEGORIES[0].value);
+    const initialBoardType = BOARD_CATEGORIES.some(
+        (category) => category.value === categoryFromUrl
+    )
+        ? categoryFromUrl
+        : BOARD_CATEGORIES[0].value;
+    const [boardType, setBoardType] = useState(initialBoardType);
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
     const [tradeStatus, setTradeStatus] = useState('SELL');
@@ -78,11 +84,6 @@ export default function BoardWritePage() {
             return;
         }
 
-        if (!Number.isInteger(TEMP_WRITER_ID) || TEMP_WRITER_ID <= 0) {
-            setSubmitError('.env의 VITE_BOARD_WRITER_ID에 실제 작성자 ID를 입력해주세요.');
-            return;
-        }
-
         try {
             setIsSubmitting(true);
             setSubmitError('');
@@ -92,7 +93,6 @@ export default function BoardWritePage() {
                 category: boardType,
                 title: title.trim(),
                 content: content.trim(),
-                userId: TEMP_WRITER_ID,
                 imageUrls,
                 // 장터 글일 때만 가격과 거래 종류(팝니다/삽니다)를 백엔드에 함께 보냅니다.
                 ...(boardType === 'MARKET'

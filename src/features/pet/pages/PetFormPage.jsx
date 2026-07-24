@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import BottomNavigation from '../../../components/navigation/BottomNavigation';
+import BottomNavigation from '../../../components/BottomNavigation';
 import { getApiErrorMessage } from '../../../lib/apiError';
 import MyPageHeader from '../../mypage/components/MyPageHeader';
 import {
@@ -184,7 +184,7 @@ export default function PetFormPage() {
           </form>
         )}
       </main>
-      <BottomNavigation active="mypage" />
+      <BottomNavigation />
     </div>
   );
 }

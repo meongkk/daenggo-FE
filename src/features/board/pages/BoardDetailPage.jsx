@@ -13,9 +13,8 @@ import {
 import { getCategoryLabel } from '../boardConstants';
 import BoardImageEditor from '../components/BoardImageEditor';
 import BottomNavigation from '../../../components/BottomNavigation';
+import { getMyInfo } from '../../user/api/userApi';
 import './Board.css';
-
-const TEMP_WRITER_ID = Number(import.meta.env.VITE_BOARD_WRITER_ID ?? 1);
 
 // 백엔드의 UTC 날짜를 사용자의 휴대폰 시간대에 맞는 한국식 날짜로 보여줍니다.
 function formatCommentDate(createdAt) {
@@ -44,6 +43,7 @@ export default function BoardDetailPage() {
     const { id } = useParams();
     const navigate = useNavigate();
     const [post, setPost] = useState(null);
+    const [currentUserId, setCurrentUserId] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [loadError, setLoadError] = useState('');
     const [commentInput, setCommentInput] = useState('');
@@ -70,14 +70,16 @@ export default function BoardDetailPage() {
             try {
                 setIsLoading(true);
                 setLoadError('');
-                const [postData, commentData] = await Promise.all([
+                const [postData, commentData, currentUserData] = await Promise.all([
                     getBoardPost(id),
                     getBoardComments(id),
+                    getMyInfo(),
                 ]);
 
                 if (isCurrentRequest) {
                     setPost(postData);
                     setComments(commentData);
+                    setCurrentUserId(currentUserData.id);
                 }
             } catch (error) {
                 if (isCurrentRequest) setLoadError(error.response?.data?.message ?? error.message);
@@ -97,18 +99,12 @@ export default function BoardDetailPage() {
         const content = commentInput.trim();
         if (!content) return;
 
-        if (!Number.isInteger(TEMP_WRITER_ID) || TEMP_WRITER_ID <= 0) {
-            setCommentError('.env의 VITE_BOARD_WRITER_ID에 실제 작성자 ID를 입력해주세요.');
-            return;
-        }
-
         try {
             setIsCommentSubmitting(true);
             setCommentError('');
 
             const createdComment = await createBoardComment(id, {
                 content,
-                userId: TEMP_WRITER_ID,
             });
 
             setComments((currentComments) => [...currentComments, createdComment]);
@@ -154,7 +150,6 @@ export default function BoardDetailPage() {
 
             const updatedComment = await updateBoardComment(id, commentId, {
                 content,
-                userId: TEMP_WRITER_ID,
             });
 
             setComments((currentComments) => currentComments.map((comment) => (
@@ -175,7 +170,7 @@ export default function BoardDetailPage() {
         try {
             setProcessingCommentId(commentId);
             setCommentError('');
-            await deleteBoardComment(id, commentId, TEMP_WRITER_ID);
+            await deleteBoardComment(id, commentId);
 
             setComments((currentComments) => (
                 currentComments.filter((comment) => comment.id !== commentId)
@@ -201,7 +196,7 @@ export default function BoardDetailPage() {
         try {
             setIsPostDeleting(true);
             setPostDeleteError('');
-            await deleteBoardPost(id, TEMP_WRITER_ID);
+            await deleteBoardPost(id);
             navigate('/board', { replace: true });
         } catch (error) {
             setPostDeleteError(getApiErrorMessage(error, '게시글을 삭제하지 못했습니다.'));
@@ -245,7 +240,6 @@ export default function BoardDetailPage() {
             const newImageUrls = await uploadBoardImages(editNewImageFiles);
             const imageUrls = [...editExistingImageUrls, ...newImageUrls];
             const updatedPost = await updateBoardPost(id, {
-                userId: TEMP_WRITER_ID,
                 title,
                 content,
                 imageUrls,
@@ -261,7 +255,7 @@ export default function BoardDetailPage() {
         }
     };
 
-    const isOwnPost = Number(post?.userId) === TEMP_WRITER_ID;
+    const isOwnPost = Number(post?.userId) === Number(currentUserId);
 
     return (
         <div className="mobile-container">
@@ -391,7 +385,7 @@ export default function BoardDetailPage() {
                                 <p className="board-state-message">첫 댓글을 남겨보세요.</p>
                             ) : comments.map((comment) => {
                                 const nickname = comment.nickname || '사용자';
-                                const isOwnComment = Number(comment.userId) === TEMP_WRITER_ID;
+                                const isOwnComment = Number(comment.userId) === Number(currentUserId);
                                 const isProcessing = processingCommentId === comment.id;
                                 const isEditing = editingCommentId === comment.id;
 
