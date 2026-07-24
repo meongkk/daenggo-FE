@@ -37,7 +37,7 @@ export default function LoginPage() {
       }
 
       saveTokens(tokens);
-      navigate(location.state?.from || '/mypage', { replace: true });
+      navigate(location.state?.from || '/map', { replace: true });
     } catch (requestError) {
       const status = requestError.response?.status;
 
