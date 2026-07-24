@@ -5,7 +5,8 @@ import {
     saveWalkTrackPoints,
     uploadWalkPhoto
 } from '../api/walkApi';
-import { getMyPetsApi } from '../api/petApi.js';
+// import {getMyPetsApi} from '../api/petApi.js'; // 펫 등록 수정 중
+import { getMyPets as fetchMyPets } from '../../pet/api/petApi';
 import BottomNavigation from '../../../components/BottomNavigation';
 import './Walk.css';
 import KakaoMap from "../../../components/KakaoMap";
@@ -67,6 +68,8 @@ export default function WalkTrackingPage() {
     const [selectedPetIds, setSelectedPetIds] = useState([]);
     const [petSelectorOpen, setPetSelectorOpen] = useState(false);
 
+    
+
     const timerIdRef = useRef(null);
     const gpsWatchIdRef = useRef(null);
     const lastPositionRef = useRef(null);
@@ -111,12 +114,8 @@ export default function WalkTrackingPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [walkId]);
 
-    // 완료 모달이 열릴 때 반려동물 목록을 불러온다.
-    useEffect(() => {
-        if (showCompleteModal) {
-            getMyPets();
-        }
-    }, [showCompleteModal]);
+
+
 
     function queueGpsBatch(activeWalkId, points) {
         pendingGpsRequestRef.current = pendingGpsRequestRef.current
@@ -129,14 +128,47 @@ export default function WalkTrackingPage() {
             });
     }
 
-    async function getMyPets() {
-        try {
-            const res = await getMyPetsApi();
-            setMyPets(res.data);
-        } catch (error) {
-            console.log("반려동물 조회 실패", error);
+    useEffect(() => {
+        if (!showCompleteModal) return;
+
+        async function loadMyPets() {
+            try {
+                setErrorMessage('');
+
+                const pets = await fetchMyPets();
+
+                setMyPets(pets);
+            } catch (error) {
+                setErrorMessage(
+                    error.response?.data?.message
+                    ?? '반려동물 목록을 불러오지 못했어요.'
+                );
+            }
         }
-    }
+
+        loadMyPets();
+    }, [showCompleteModal]);
+
+
+
+    // useEffect(() => { 펫 등록 추가 중
+    //     if(showCompleteModal){
+    //         getMyPets();
+    //     }
+    // }, [showCompleteModal]);
+
+
+    // // 여기에 추가
+    // async function getMyPets(){ 이게 2개 있다고 지우라는데?
+    //     try {
+    //         // TODO: 실제 API 연결
+    //         const res = await getMyPetsApi();
+    //         setMyPets(res.data);
+    //     } catch(error){
+    //         console.log("반려동물 조회 실패", error);
+    //     }
+    // }
+    
 
     // GPS 좌표 수신 전용. 시간 측정과는 분리되어 있다.
     function beginDeviceTracking(activeWalkId) {
