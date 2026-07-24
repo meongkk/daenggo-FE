@@ -67,7 +67,7 @@ export default function LoginPage() {
             <span className="sr-only">이메일 주소</span>
             <input
               id="email"
-              type="email"
+              type="text" // email 형식으로 로그인이 되게 하려면 "email"로 바꿔야함
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               placeholder="이메일 주소"
