@@ -1,0 +1,43 @@
+.app-bottom-nav {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 10;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  height: 72px;
+  padding: 8px 8px max(8px, env(safe-area-inset-bottom));
+  background: rgb(255 255 255 / 96%);
+  border-top: 1px solid #f0f0f1;
+  backdrop-filter: blur(12px);
+}
+
+.app-bottom-nav__item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 0;
+  color: #c9ccd3;
+  cursor: pointer;
+  background: transparent;
+}
+
+.app-bottom-nav__item[aria-disabled="true"] {
+  cursor: default;
+}
+
+.app-bottom-nav__item span {
+  overflow: hidden;
+  font-size: 10px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-bottom-nav__item.is-active {
+  color: var(--brand);
+}
