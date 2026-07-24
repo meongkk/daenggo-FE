@@ -7,9 +7,18 @@ import {
   getMyPets,
   setPrimaryPet,
 } from '../../pet/api/petApi';
+import useProfileImageSource from '../../profile/hooks/useProfileImageSource';
 import EmptyImage from '../components/EmptyImage';
 import MyPageHeader from '../components/MyPageHeader';
 import './MyPage.css';
+
+function PetCardImage({ imageUrl, name }) {
+  const imageSource = useProfileImageSource(imageUrl);
+
+  return imageSource
+    ? <img src={imageSource} alt={`${name} 프로필`} />
+    : <EmptyImage />;
+}
 
 export default function PetsPage() {
   const navigate = useNavigate();
@@ -70,9 +79,7 @@ export default function PetsPage() {
               type="button"
               onClick={() => navigate(`/mypage/pets/${pet.petId}/edit`)}
             >
-              {pet.profileImageUrl
-                ? <img src={pet.profileImageUrl} alt={`${pet.name} 프로필`} />
-                : <EmptyImage />}
+              <PetCardImage imageUrl={pet.profileImageUrl} name={pet.name} />
               <strong>{pet.name}</strong>
             </button>
             <button

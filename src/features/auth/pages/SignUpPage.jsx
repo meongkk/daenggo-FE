@@ -17,7 +17,6 @@ export default function SignUpPage() {
     email: '',
     password: '',
     confirmPassword: '',
-    profileImageUrl: '',
   });
   const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState('');
@@ -87,7 +86,6 @@ export default function SignUpPage() {
         email: form.email.trim(),
         password: form.password,
         nickname: form.nickname.trim(),
-        profileImageUrl: form.profileImageUrl.trim() || null,
       });
 
       navigate('/login', {
@@ -149,19 +147,6 @@ export default function SignUpPage() {
           </label>
           <PasswordField id="new-password" label="비밀번호" value={form.password} onChange={updateField('password')} placeholder="8자 이상 입력해주세요" disabled={isSubmitting} />
           <PasswordField id="confirm-password" value={form.confirmPassword} onChange={updateField('confirmPassword')} placeholder="비밀번호를 다시 입력해주세요" disabled={isSubmitting} />
-          <label className="auth-field" htmlFor="signup-profile-image">
-            <span>프로필 이미지 URL <small>(선택)</small></span>
-            <input
-              id="signup-profile-image"
-              type="url"
-              value={form.profileImageUrl}
-              onChange={updateField('profileImageUrl')}
-              placeholder="https://..."
-              maxLength={250}
-              disabled={isSubmitting}
-            />
-          </label>
-
           <label className="auth-agreement">
             <input type="checkbox" checked={agreed} onChange={(event) => setAgreed(event.target.checked)} disabled={isSubmitting} />
             <span><strong>이용약관</strong> 및 <strong>개인정보 처리방침</strong>에 동의합니다.</span>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import BottomNavigation from '../../../components/BottomNavigation';
 import { getApiErrorMessage } from '../../../lib/apiError';
@@ -9,6 +9,12 @@ import {
   updateMyInfo,
 } from '../../user/api/userApi';
 import PasswordField from '../../auth/components/PasswordField';
+import {
+  PROFILE_IMAGE_MAX_SIZE,
+  PROFILE_IMAGE_TYPES,
+  uploadUserImage,
+} from '../../profile/api/profileImageApi';
+import useProfileImageSource from '../../profile/hooks/useProfileImageSource';
 import MyPageHeader from '../components/MyPageHeader';
 import './MyPage.css';
 
@@ -30,6 +36,20 @@ export default function ProfileEditPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isProfileSubmitting, setIsProfileSubmitting] = useState(false);
   const [isPasswordSubmitting, setIsPasswordSubmitting] = useState(false);
+  const [selectedImageFile, setSelectedImageFile] = useState(null);
+  const storedImageSource = useProfileImageSource(profileForm.profileImageUrl);
+  const selectedImagePreview = useMemo(
+    () => selectedImageFile ? URL.createObjectURL(selectedImageFile) : '',
+    [selectedImageFile],
+  );
+
+  useEffect(() => (
+    () => {
+      if (selectedImagePreview) {
+        URL.revokeObjectURL(selectedImagePreview);
+      }
+    }
+  ), [selectedImagePreview]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -67,6 +87,26 @@ export default function ProfileEditPage() {
     setPasswordMessage('');
   };
 
+  const handleProfileImageChange = (event) => {
+    const imageFile = event.target.files?.[0];
+    event.target.value = '';
+
+    if (!imageFile) {
+      return;
+    }
+    if (!PROFILE_IMAGE_TYPES.includes(imageFile.type)) {
+      setProfileMessage('JPG, PNG, GIF, WEBP 형식의 이미지만 등록할 수 있습니다.');
+      return;
+    }
+    if (imageFile.size > PROFILE_IMAGE_MAX_SIZE) {
+      setProfileMessage('이미지는 10MB 이하만 등록할 수 있습니다.');
+      return;
+    }
+
+    setSelectedImageFile(imageFile);
+    setProfileMessage('');
+  };
+
   const handleProfileSubmit = async (event) => {
     event.preventDefault();
     if (!profileForm.nickname.trim() || !profileForm.currentPassword) {
@@ -77,9 +117,13 @@ export default function ProfileEditPage() {
     try {
       setIsProfileSubmitting(true);
       setProfileMessage('');
+      const profileImageUrl = selectedImageFile
+        ? await uploadUserImage(selectedImageFile)
+        : profileForm.profileImageUrl.trim();
+
       await updateMyInfo({
         nickname: profileForm.nickname.trim(),
-        profileImageUrl: profileForm.profileImageUrl.trim(),
+        profileImageUrl,
         currentPassword: profileForm.currentPassword,
       });
       navigate('/mypage', {
@@ -146,10 +190,29 @@ export default function ProfileEditPage() {
             <span>이메일 주소</span>
             <input id="edit-email" type="email" value={profileForm.email} readOnly disabled />
           </label>
-          <label className="auth-field" htmlFor="edit-profile-image">
-            <span>프로필 이미지 URL</span>
-            <input id="edit-profile-image" type="url" value={profileForm.profileImageUrl} onChange={updateProfileField('profileImageUrl')} maxLength={250} disabled={isLoading || isProfileSubmitting} placeholder="https://..." />
-          </label>
+          <div className="profile-image-field">
+            <span>프로필 이미지</span>
+            {(selectedImagePreview || storedImageSource) && (
+              <img
+                className="profile-image-preview"
+                src={selectedImagePreview || storedImageSource}
+                alt="선택한 프로필 미리보기"
+              />
+            )}
+            <label className="profile-image-select-button" htmlFor="edit-profile-image">
+              이미지 선택
+            </label>
+            <input
+              id="edit-profile-image"
+              className="sr-only"
+              type="file"
+              accept={PROFILE_IMAGE_TYPES.join(',')}
+              onChange={handleProfileImageChange}
+              disabled={isLoading || isProfileSubmitting}
+            />
+            <small>JPG, PNG, GIF, WEBP · 최대 10MB</small>
+            {selectedImageFile && <small>선택 파일: {selectedImageFile.name}</small>}
+          </div>
           <PasswordField id="profile-current-password" label="현재 비밀번호" value={profileForm.currentPassword} onChange={updateProfileField('currentPassword')} placeholder="정보 수정을 위해 입력해주세요" disabled={isLoading || isProfileSubmitting} />
           {profileMessage && <p className="auth-error" role="alert">{profileMessage}</p>}
           <button className="auth-primary-button" type="submit" disabled={isLoading || isProfileSubmitting}>

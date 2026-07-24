@@ -1,8 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import BottomNavigation from '../../../components/BottomNavigation';
 import { getApiErrorMessage } from '../../../lib/apiError';
 import MyPageHeader from '../../mypage/components/MyPageHeader';
+import {
+  PROFILE_IMAGE_MAX_SIZE,
+  PROFILE_IMAGE_TYPES,
+  uploadPetImage,
+} from '../../profile/api/profileImageApi';
+import useProfileImageSource from '../../profile/hooks/useProfileImageSource';
 import {
   createPet,
   deletePet,
@@ -31,6 +37,20 @@ export default function PetFormPage() {
   const [isLoading, setIsLoading] = useState(isEditing);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [selectedImageFile, setSelectedImageFile] = useState(null);
+  const storedImageSource = useProfileImageSource(form.profileImageUrl);
+  const selectedImagePreview = useMemo(
+    () => selectedImageFile ? URL.createObjectURL(selectedImageFile) : '',
+    [selectedImageFile],
+  );
+
+  useEffect(() => (
+    () => {
+      if (selectedImagePreview) {
+        URL.revokeObjectURL(selectedImagePreview);
+      }
+    }
+  ), [selectedImagePreview]);
 
   useEffect(() => {
     if (!isEditing) {
@@ -78,6 +98,26 @@ export default function PetFormPage() {
     setError('');
   };
 
+  const handleProfileImageChange = (event) => {
+    const imageFile = event.target.files?.[0];
+    event.target.value = '';
+
+    if (!imageFile) {
+      return;
+    }
+    if (!PROFILE_IMAGE_TYPES.includes(imageFile.type)) {
+      setError('JPG, PNG, GIF, WEBP 형식의 이미지만 등록할 수 있습니다.');
+      return;
+    }
+    if (imageFile.size > PROFILE_IMAGE_MAX_SIZE) {
+      setError('이미지는 10MB 이하만 등록할 수 있습니다.');
+      return;
+    }
+
+    setSelectedImageFile(imageFile);
+    setError('');
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
 
@@ -87,13 +127,12 @@ export default function PetFormPage() {
     }
 
     const breedText = form.breedText.trim();
-    const commonRequest = {
+    const petRequest = {
       name: form.name.trim(),
       breedId: form.breedId ? Number(form.breedId) : null,
       breedText: form.breedId ? null : breedText || null,
       weight: Number(form.weight),
       size: form.size.trim(),
-      profileImageUrl: form.profileImageUrl.trim(),
       registrationNumber: form.registrationNumber.trim(),
       vaccine: form.vaccine.trim(),
     };
@@ -101,6 +140,14 @@ export default function PetFormPage() {
     try {
       setIsSubmitting(true);
       setError('');
+      const profileImageUrl = selectedImageFile
+        ? await uploadPetImage(selectedImageFile)
+        : form.profileImageUrl.trim();
+      const commonRequest = {
+        ...petRequest,
+        ...(profileImageUrl ? { profileImageUrl } : {}),
+      };
+
       if (isEditing) {
         await updatePet(petId, commonRequest);
       } else {
@@ -162,10 +209,29 @@ export default function PetFormPage() {
               <span>예방접종 정보</span>
               <input id="pet-vaccine" value={form.vaccine} onChange={updateField('vaccine')} maxLength={50} disabled={isSubmitting} />
             </label>
-            <label className="auth-field" htmlFor="pet-image">
-              <span>프로필 이미지 URL</span>
-              <input id="pet-image" type="url" value={form.profileImageUrl} onChange={updateField('profileImageUrl')} maxLength={500} placeholder="https://..." disabled={isSubmitting} />
-            </label>
+            <div className="profile-image-field">
+              <span>프로필 이미지</span>
+              {(selectedImagePreview || storedImageSource) && (
+                <img
+                  className="profile-image-preview"
+                  src={selectedImagePreview || storedImageSource}
+                  alt={`${form.name || '반려동물'} 프로필 미리보기`}
+                />
+              )}
+              <label className="profile-image-select-button" htmlFor="pet-image">
+                이미지 선택
+              </label>
+              <input
+                id="pet-image"
+                className="sr-only"
+                type="file"
+                accept={PROFILE_IMAGE_TYPES.join(',')}
+                onChange={handleProfileImageChange}
+                disabled={isSubmitting}
+              />
+              <small>JPG, PNG, GIF, WEBP · 최대 10MB</small>
+              {selectedImageFile && <small>선택 파일: {selectedImageFile.name}</small>}
+            </div>
             {!isEditing && (
               <label className="pet-primary-check">
                 <input type="checkbox" checked={form.primary} onChange={updateField('primary')} disabled={isSubmitting} />
