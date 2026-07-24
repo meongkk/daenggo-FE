@@ -1,5 +1,5 @@
 import AppIcon from '../../../components/ui/AppIcon';
-import BottomNavigation from '../../../components/navigation/BottomNavigation';
+import BottomNavigation from '../../../components/BottomNavigation';
 import MyPageHeader from '../components/MyPageHeader';
 import './MyPage.css';
 
@@ -19,7 +19,7 @@ export default function FamilyPage() {
       <main className="family-list">
         {family.map((member) => <button key={member} type="button">{member}</button>)}
       </main>
-      <BottomNavigation active="mypage" />
+      <BottomNavigation />
     </div>
   );
 }

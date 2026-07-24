@@ -1,4 +1,4 @@
-import BottomNavigation from '../../../components/navigation/BottomNavigation';
+import BottomNavigation from '../../../components/BottomNavigation';
 import EmptyImage from '../components/EmptyImage';
 import MyPageHeader from '../components/MyPageHeader';
 import './MyPage.css';
@@ -21,7 +21,7 @@ export default function FavoritesPage() {
           </article>
         ))}
       </main>
-      <BottomNavigation active="mypage" />
+      <BottomNavigation />
     </div>
   );
 }

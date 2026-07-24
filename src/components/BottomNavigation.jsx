@@ -11,7 +11,7 @@ const NAV_ITEMS = [
     { label: '지도', icon: mapIcon, activeIcon: mapActiveIcon, path: '/map' },
     { label: '산책', icon: walkIcon, activeIcon: walkActiveIcon, path: '/walk' },
     { label: '커뮤니티', icon: communityIcon, activeIcon: communityIcon, path: '/board' },
-    { label: '마이페이지', icon: mypageIcon, activeIcon: mypageIcon, path: null },
+    { label: '마이페이지', icon: mypageIcon, activeIcon: mypageIcon, path: '/mypage' },
 ];
 
 // 현재 주소를 확인해 선택된 메뉴를 자동으로 주황색으로 표시합니다.
