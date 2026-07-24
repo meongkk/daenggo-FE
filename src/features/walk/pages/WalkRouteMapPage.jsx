@@ -4,8 +4,6 @@ import { getWalkRoute } from '../api/walkApi';
 import BottomNavigation from '../../../components/BottomNavigation';
 import './Walk.css';
 
-const TEMP_USER_ID = Number(import.meta.env.VITE_BOARD_WRITER_ID ?? 1);
-
 export default function WalkRouteMapPage() {
     const { walkId } = useParams();
     const navigate = useNavigate();
@@ -13,7 +11,7 @@ export default function WalkRouteMapPage() {
     useEffect(() => {
         async function loadRoute() {
             try {
-                const response = await getWalkRoute(walkId, TEMP_USER_ID);
+                const response = await getWalkRoute(walkId);
 
                 const routePoints = Array.isArray(response)
                     ? response

@@ -40,7 +40,7 @@ function App() {
     script.async = true;
 
     document.head.appendChild(script);
-  }, []);
+  }, [])
 
   return (
     <BrowserRouter>

@@ -9,7 +9,6 @@ import {getMyPetsApi} from '../api/petApi.js';
 import BottomNavigation from '../../../components/BottomNavigation';
 import './Walk.css';
 import KakaoMap from "../../../components/KakaoMap";
-const TEMP_USER_ID = Number(import.meta.env.VITE_BOARD_WRITER_ID ?? 1);
 
 const GPS_BATCH_SIZE = 5;
 
@@ -116,7 +115,7 @@ export default function WalkTrackingPage() {
 
     function queueGpsBatch(activeWalkId, points) {
         pendingGpsRequestRef.current = pendingGpsRequestRef.current
-            .then(() => saveWalkTrackPoints(activeWalkId, TEMP_USER_ID, points))
+            .then(() => saveWalkTrackPoints(activeWalkId, points))
             .catch((error) => {
                 setErrorMessage(
                     error.response?.data?.message
@@ -230,7 +229,7 @@ export default function WalkTrackingPage() {
 
         try {
             setErrorMessage('');
-            await uploadWalkPhoto(TEMP_USER_ID, walkId, imageFile, currentPosition);
+            await uploadWalkPhoto(walkId, imageFile, currentPosition);
             setMessage('사진을 산책 기록에 저장했어요.');
         } catch (error) {
             setErrorMessage(
@@ -262,7 +261,7 @@ export default function WalkTrackingPage() {
         //     }
         //     await pendingGpsRequestRef.current;
 
-        //     const data = await completeWalk(walkId, TEMP_USER_ID, {
+        //     const data = await completeWalk(walkId, {
         //         title: `${new Date().toLocaleDateString('ko-KR')} 산책`,
         //         memo: '',
         //         petIds: [],
@@ -322,7 +321,6 @@ export default function WalkTrackingPage() {
     
             const data = await completeWalk(
                 walkId,
-                TEMP_USER_ID,
                 {
                     title: walkTitle,
                     memo: walkMemo,
