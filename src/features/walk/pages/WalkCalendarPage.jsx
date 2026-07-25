@@ -4,6 +4,7 @@ import { getWalkCalendar, startWalk } from '../api/walkApi';
 import BottomNavigation from '../../../components/BottomNavigation';
 import './Walk.css';
 import pawImage from '../../../assets/icons/paw.png';
+import { getMyPets } from '../../pet/api/petApi';
 
 const WEEKDAYS = ['월', '화', '수', '목', '금', '토', '일'];
 
@@ -31,6 +32,29 @@ function createCalendarDays(monthDate) {
 export default function WalkCalendarPage() {
     const navigate = useNavigate();
     const [monthDate, setMonthDate] = useState(() => new Date());
+    const [myPets, setMyPets] = useState([]);
+    const [isPetLoading, setIsPetLoading] = useState(true);
+
+    useEffect(() => {
+        async function loadMyPets() {
+            try {
+                setIsPetLoading(true);
+    
+                const pets = await getMyPets();
+    
+                setMyPets(pets);
+    
+            } catch (error) {
+                console.error('반려동물 조회 실패', error);
+                setMyPets([]);
+            } finally {
+                setIsPetLoading(false);
+            }
+        }
+    
+        loadMyPets();
+    
+    }, []);
 
     
     async function handleStartWalk() {
@@ -66,7 +90,13 @@ export default function WalkCalendarPage() {
         const map = new Map();
     
         walkDates.forEach(item => {
-            map.set(item.walkDate, item.walkRecordId);
+            map.set(
+                item.walkDate,
+                [
+                ...(map.get(item.walkDate) ?? []),
+                item.walkRecordId
+                ]
+            );
         });
     
         return map;
@@ -139,9 +169,12 @@ export default function WalkCalendarPage() {
                                 onClick={() => {
                                     if (!hasWalk) return;
 
-                                    const walkId = walkMap.get(dateKey);
+                                    console.log('선택된 산책:', dateKey);
+                                    
+                                    navigate(`/walk/list/${dateKey}`);
+                                    // const walks = walkMap.get(dateKey);
 
-                                    navigate(`/walk/${walkId}`)
+                                    // setSelectedWalks(walks);
                                 }}
                             >
                                 {hasWalk && (
@@ -166,15 +199,24 @@ export default function WalkCalendarPage() {
                 </div>
             </section>
 
+            
+
             <div className="walk-primary-action-wrap">
                 <button
                     type="button"
                     className="walk-primary-button"
                     onClick={handleStartWalk}
+                    disabled={isPetLoading || myPets.length === 0}
                 >
-                    산책 등록하기
+                    {isPetLoading
+                    ? '반려동물 확인 중...'
+                    : myPets.length === 0
+                        ? '반려동물 등록 후 이용 가능'
+                        : '산책 등록하기'}
                 </button>
             </div>
+
+            
 
             <BottomNavigation />
         </main>

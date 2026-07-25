@@ -27,6 +27,7 @@ import WalkCalendarPage from './features/walk/pages/WalkCalendarPage';
 import WalkTrackingPage from './features/walk/pages/WalkTrackingPage';
 import WalkDetailPage from './features/walk/pages/WalkDetailPage';
 import WalkRouteMapPage from './features/walk/pages/WalkRouteMapPage';
+import WalkRecordListPage from './features/walk/pages/WalkRecordListPage';
 
 const KAKAO_KEY = import.meta.env.VITE_KAKAO_MAP_KEY;
 
@@ -71,6 +72,7 @@ function App() {
           <Route path="/walk/tracking/:walkId" element={<WalkTrackingPage />} />
           <Route path="/walk/:walkId" element={<WalkDetailPage />} />
           <Route path="/walk/:walkId/map" element={<WalkRouteMapPage />} />
+          <Route path="/walk/list/:date" element={<WalkRecordListPage />}/>
         </Route>
 
         <Route path="*" element={<Navigate to="/login" replace />} />
