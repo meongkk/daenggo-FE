@@ -499,6 +499,30 @@
   background: #f5f6f8;
 }
 
+.pet-size-derived {
+  width: 100%;
+  min-height: 58px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  padding: 9px 15px;
+  color: #25262b;
+  background: #fff8ef;
+  border: 1px solid #f3d4af;
+  border-radius: 11px;
+}
+
+.pet-size-derived strong {
+  color: var(--brand-strong);
+  font-size: 13px;
+}
+
+.pet-size-derived small {
+  color: #777b84;
+  font-size: 11px;
+}
+
 .danger-outline-button {
   min-height: 44px;
   color: #ef5350;
