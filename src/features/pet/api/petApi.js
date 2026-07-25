@@ -1,5 +1,13 @@
 import apiClient from '../../../lib/apiClient';
 
+export async function getBreeds({ signal } = {}) {
+  const response = await apiClient.get('/api/breeds', {
+    signal,
+    skipAuth: true,
+  });
+  return response.data;
+}
+
 export async function getMyPets({ signal } = {}) {
   const response = await apiClient.get('/api/pets', { signal });
   return response.data;

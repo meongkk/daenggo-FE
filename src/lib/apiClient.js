@@ -6,11 +6,9 @@ import {
   saveTokens,
 } from '../features/auth/api/tokenStorage';
 
-const apiClient = axios.create({
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
+// Axios가 일반 객체는 JSON으로, FormData는 multipart/form-data로 자동 구분한다.
+// FormData의 Content-Type을 직접 고정하면 브라우저가 만드는 boundary가 빠질 수 있다.
+const apiClient = axios.create();
 
 apiClient.interceptors.request.use((config) => {
   if (config.skipAuth) {

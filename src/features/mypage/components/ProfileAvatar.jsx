@@ -1,4 +1,5 @@
 import AppIcon from '../../../components/ui/AppIcon';
+import useProfileImageSource from '../../profile/hooks/useProfileImageSource';
 
 export default function ProfileAvatar({
   editable = false,
@@ -6,10 +7,12 @@ export default function ProfileAvatar({
   nickname = '',
   size = 'large',
 }) {
+  const imageSource = useProfileImageSource(imageUrl);
+
   return (
     <div className={`profile-avatar profile-avatar--${size}`}>
-      {imageUrl ? (
-        <img src={imageUrl} alt={`${nickname || '사용자'} 프로필`} />
+      {imageSource ? (
+        <img src={imageSource} alt={`${nickname || '사용자'} 프로필`} />
       ) : (
         <AppIcon name="user" size={size === 'large' ? 56 : 38} strokeWidth={1.5} />
       )}
