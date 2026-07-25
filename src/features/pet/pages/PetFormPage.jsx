@@ -12,6 +12,7 @@ import useProfileImageSource from '../../profile/hooks/useProfileImageSource';
 import {
   createPet,
   deletePet,
+  getBreeds,
   getMyPet,
   setPrimaryPet,
   updatePet,
@@ -21,9 +22,7 @@ import '../../mypage/pages/MyPage.css';
 const EMPTY_FORM = {
   name: '',
   breedId: '',
-  breedText: '',
   weight: '',
-  size: '',
   profileImageUrl: '',
   registrationNumber: '',
   vaccine: '',
@@ -38,6 +37,8 @@ export default function PetFormPage() {
   const [isLoading, setIsLoading] = useState(isEditing);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [breeds, setBreeds] = useState([]);
+  const [isBreedsLoading, setIsBreedsLoading] = useState(true);
   const [initialPrimary, setInitialPrimary] = useState(false);
   const [selectedImageFile, setSelectedImageFile] = useState(null);
   const storedImageSource = useProfileImageSource(form.profileImageUrl);
@@ -55,6 +56,25 @@ export default function PetFormPage() {
   ), [selectedImagePreview]);
 
   useEffect(() => {
+    const controller = new AbortController();
+
+    getBreeds({ signal: controller.signal })
+      .then(setBreeds)
+      .catch((requestError) => {
+        if (requestError.code !== 'ERR_CANCELED') {
+          setError(getApiErrorMessage(requestError, '견종 목록을 불러오지 못했습니다.'));
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setIsBreedsLoading(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
     if (!isEditing) {
       return undefined;
     }
@@ -66,9 +86,7 @@ export default function PetFormPage() {
         setForm({
           name: pet.name || '',
           breedId: pet.breedId || '',
-          breedText: pet.breedText || pet.breedName || '',
           weight: pet.weight ?? '',
-          size: pet.size || '',
           profileImageUrl: pet.profileImageUrl || '',
           registrationNumber: pet.registrationNumber || '',
           vaccine: pet.vaccine || '',
@@ -97,7 +115,6 @@ export default function PetFormPage() {
     setForm((current) => ({
       ...current,
       [field]: value,
-      ...(field === 'breedText' ? { breedId: '' } : {}),
     }));
     setError('');
   };
@@ -125,18 +142,16 @@ export default function PetFormPage() {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    if (!form.name.trim() || !form.weight || Number(form.weight) <= 0 || !form.size.trim()) {
-      setError('이름, 몸무게, 크기를 올바르게 입력해주세요.');
+    if (!form.name.trim() || !form.breedId || !form.weight || Number(form.weight) <= 0) {
+      setError('이름, 견종, 몸무게를 올바르게 입력해주세요.');
       return;
     }
 
-    const breedText = form.breedText.trim();
     const petRequest = {
       name: form.name.trim(),
-      breedId: form.breedId ? Number(form.breedId) : null,
-      breedText: form.breedId ? null : breedText || null,
+      breedId: Number(form.breedId),
+      breedText: null,
       weight: Number(form.weight),
-      size: form.size.trim(),
       registrationNumber: form.registrationNumber.trim(),
       vaccine: form.vaccine.trim(),
     };
@@ -197,16 +212,28 @@ export default function PetFormPage() {
               <input id="pet-name" value={form.name} onChange={updateField('name')} maxLength={50} disabled={isSubmitting} />
             </label>
             <label className="auth-field" htmlFor="pet-breed">
-              <span>견종</span>
-              <input id="pet-breed" value={form.breedText} onChange={updateField('breedText')} maxLength={50} placeholder="직접 입력" disabled={isSubmitting} />
+              <span>견종 *</span>
+              <select
+                id="pet-breed"
+                className="pet-breed-select"
+                value={form.breedId}
+                onChange={updateField('breedId')}
+                disabled={isSubmitting || isBreedsLoading}
+                required
+              >
+                <option value="">
+                  {isBreedsLoading ? '견종 목록을 불러오는 중...' : '견종을 선택해주세요'}
+                </option>
+                {breeds.map((breed) => (
+                  <option key={breed.breedId} value={breed.breedId}>
+                    {breed.breedName}{breed.dangerous ? ' (맹견)' : ''}
+                  </option>
+                ))}
+              </select>
             </label>
             <label className="auth-field" htmlFor="pet-weight">
               <span>몸무게(kg) *</span>
               <input id="pet-weight" type="number" min="0.01" max="999.99" step="0.01" value={form.weight} onChange={updateField('weight')} disabled={isSubmitting} />
-            </label>
-            <label className="auth-field" htmlFor="pet-size">
-              <span>크기 *</span>
-              <input id="pet-size" value={form.size} onChange={updateField('size')} maxLength={20} placeholder="예: 소형" disabled={isSubmitting} />
             </label>
             <label className="auth-field" htmlFor="pet-registration">
               <span>동물등록번호</span>

@@ -12,6 +12,12 @@ import EmptyImage from '../components/EmptyImage';
 import MyPageHeader from '../components/MyPageHeader';
 import './MyPage.css';
 
+const PET_SIZE_LABELS = {
+  SMALL: '소형견',
+  MEDIUM: '중형견',
+  LARGE: '대형견',
+};
+
 function PetCardImage({ imageUrl, name }) {
   const imageSource = useProfileImageSource(imageUrl);
 
@@ -89,6 +95,11 @@ export default function PetsPage() {
             >
               <PetCardImage imageUrl={pet.profileImageUrl} name={pet.name} />
               <strong>{pet.name}</strong>
+              {pet.size && (
+                <span className="pet-card__size">
+                  {PET_SIZE_LABELS[pet.size] || pet.size}
+                </span>
+              )}
             </button>
             {isPrimaryPet(pet) && (
               <span className="pet-primary-badge">대표 반려동물</span>
