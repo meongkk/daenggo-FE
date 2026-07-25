@@ -13,6 +13,7 @@ import {
   createPet,
   deletePet,
   getMyPet,
+  setPrimaryPet,
   updatePet,
 } from '../api/petApi';
 import '../../mypage/pages/MyPage.css';
@@ -37,6 +38,7 @@ export default function PetFormPage() {
   const [isLoading, setIsLoading] = useState(isEditing);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [initialPrimary, setInitialPrimary] = useState(false);
   const [selectedImageFile, setSelectedImageFile] = useState(null);
   const storedImageSource = useProfileImageSource(form.profileImageUrl);
   const selectedImagePreview = useMemo(
@@ -60,6 +62,7 @@ export default function PetFormPage() {
     const controller = new AbortController();
     getMyPet(petId, { signal: controller.signal })
       .then((pet) => {
+        const isPrimary = Boolean(pet.primary);
         setForm({
           name: pet.name || '',
           breedId: pet.breedId || '',
@@ -69,8 +72,9 @@ export default function PetFormPage() {
           profileImageUrl: pet.profileImageUrl || '',
           registrationNumber: pet.registrationNumber || '',
           vaccine: pet.vaccine || '',
-          primary: Boolean(pet.primary),
+          primary: isPrimary,
         });
+        setInitialPrimary(isPrimary);
       })
       .catch((requestError) => {
         if (requestError.code !== 'ERR_CANCELED') {
@@ -150,6 +154,9 @@ export default function PetFormPage() {
 
       if (isEditing) {
         await updatePet(petId, commonRequest);
+        if (form.primary && !initialPrimary) {
+          await setPrimaryPet(petId);
+        }
       } else {
         await createPet({ ...commonRequest, primary: form.primary });
       }
@@ -232,12 +239,17 @@ export default function PetFormPage() {
               <small>JPG, PNG, GIF, WEBP · 최대 10MB</small>
               {selectedImageFile && <small>선택 파일: {selectedImageFile.name}</small>}
             </div>
-            {!isEditing && (
-              <label className="pet-primary-check">
-                <input type="checkbox" checked={form.primary} onChange={updateField('primary')} disabled={isSubmitting} />
-                대표 반려동물로 등록
-              </label>
-            )}
+            <label className="pet-primary-check">
+              <input
+                type="checkbox"
+                checked={form.primary}
+                onChange={updateField('primary')}
+                disabled={isSubmitting || (isEditing && initialPrimary)}
+              />
+              {isEditing && initialPrimary
+                ? '현재 대표 반려동물'
+                : '대표 반려동물로 설정'}
+            </label>
             {error && <p className="auth-error" role="alert">{error}</p>}
             <button className="auth-primary-button" type="submit" disabled={isSubmitting}>
               {isSubmitting ? '저장 중...' : '저장'}

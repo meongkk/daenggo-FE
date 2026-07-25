@@ -4,8 +4,8 @@ import BottomNavigation from '../../../components/BottomNavigation';
 import AppIcon from '../../../components/ui/AppIcon';
 import { getApiErrorMessage } from '../../../lib/apiError';
 import {
+  getMyPet,
   getMyPets,
-  setPrimaryPet,
 } from '../../pet/api/petApi';
 import useProfileImageSource from '../../profile/hooks/useProfileImageSource';
 import EmptyImage from '../components/EmptyImage';
@@ -20,47 +20,52 @@ function PetCardImage({ imageUrl, name }) {
     : <EmptyImage />;
 }
 
+function isPrimaryPet(pet) {
+  return Boolean(pet.primary);
+}
+
 export default function PetsPage() {
   const navigate = useNavigate();
   const [pets, setPets] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
-  const [primarySubmittingId, setPrimarySubmittingId] = useState(null);
 
   useEffect(() => {
     const controller = new AbortController();
 
-    getMyPets({ signal: controller.signal })
-      .then(setPets)
-      .catch((requestError) => {
+    async function loadPets() {
+      try {
+        const petSummaries = await getMyPets({ signal: controller.signal });
+        const petDetails = await Promise.all(
+          petSummaries.map(async (petSummary) => ({
+            ...petSummary,
+            ...(await getMyPet(petSummary.petId, { signal: controller.signal })),
+          })),
+        );
+
+        setPets(petDetails);
+      } catch (requestError) {
         if (requestError.code !== 'ERR_CANCELED') {
           setError(getApiErrorMessage(requestError, '반려동물 목록을 불러오지 못했습니다.'));
         }
-      })
-      .finally(() => {
+      } finally {
         if (!controller.signal.aborted) {
           setIsLoading(false);
         }
-      });
+      }
+    }
+
+    loadPets();
 
     return () => controller.abort();
   }, []);
 
-  const handleSetPrimary = async (event, petId) => {
-    event.stopPropagation();
-    try {
-      setPrimarySubmittingId(petId);
-      setError('');
-      await setPrimaryPet(petId);
-    } catch (requestError) {
-      setError(getApiErrorMessage(requestError, '대표 반려동물로 지정하지 못했습니다.'));
-    } finally {
-      setPrimarySubmittingId(null);
-    }
-  };
-
   const addButton = (
     <button className="mypage-add-button" type="button" onClick={() => navigate('/mypage/pets/new')}><AppIcon name="plus" size={18} /> 추가하기</button>
+  );
+  const sortedPets = [...pets].sort(
+    (firstPet, secondPet) =>
+      Number(isPrimaryPet(secondPet)) - Number(isPrimaryPet(firstPet)),
   );
 
   return (
@@ -72,8 +77,11 @@ export default function PetsPage() {
           <p className="mypage-status">등록된 반려동물이 없습니다.</p>
         )}
         {error && <p className="mypage-status mypage-status--error" role="alert">{error}</p>}
-        {pets.map((pet) => (
-          <article className="pet-card" key={pet.petId}>
+        {sortedPets.map((pet) => (
+          <article
+            className={isPrimaryPet(pet) ? 'pet-card pet-card--primary' : 'pet-card'}
+            key={pet.petId}
+          >
             <button
               className="pet-card__edit"
               type="button"
@@ -82,14 +90,9 @@ export default function PetsPage() {
               <PetCardImage imageUrl={pet.profileImageUrl} name={pet.name} />
               <strong>{pet.name}</strong>
             </button>
-            <button
-              className="pet-primary-button"
-              type="button"
-              onClick={(event) => handleSetPrimary(event, pet.petId)}
-              disabled={primarySubmittingId !== null}
-            >
-              {primarySubmittingId === pet.petId ? '설정 중...' : '대표로 설정'}
-            </button>
+            {isPrimaryPet(pet) && (
+              <span className="pet-primary-badge">대표 반려동물</span>
+            )}
           </article>
         ))}
       </main>
