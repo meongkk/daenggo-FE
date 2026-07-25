@@ -6,14 +6,25 @@ const PLACE_API_URL = import.meta.env.VITE_PLACE_API_URL ?? '/api/places';
  * 현재 카카오 지도에 보이는 범위 안에서 반려동물 동반 장소를 조회합니다.
  * 백엔드가 원래 지원하는 좌표와 category만 전달합니다.
  */
-export async function getNearbyPlaces({ bounds, category }) {
+export async function getNearbyPlaces({
+  bounds,
+  category,
+  indoorAllowedOnly,
+  petWeight,
+  petSize,
+  isDangerous,
+}) {
   const response = await axios.get(`${PLACE_API_URL}/nearby`, {
     params: {
       swLat: bounds.swLat,
       swLng: bounds.swLng,
       neLat: bounds.neLat,
       neLng: bounds.neLng,
-      category: category || undefined,
+      category: category && category !== 'ALL' ? category : undefined,
+      indoorAllowedOnly: indoorAllowedOnly || undefined,
+      petWeight: petWeight || undefined,
+      petSize: petSize || undefined,
+      isDangerous: isDangerous || undefined,
     },
   });
 
