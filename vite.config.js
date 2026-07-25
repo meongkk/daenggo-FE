@@ -6,6 +6,7 @@ export default defineConfig({
 
   // 개발 중 /api로 시작하는 요청을 백엔드 서버로 전달합니다.
   server: {
+    host: '0.0.0.0',
     proxy: {
       '/api': {
         target: 'http://localhost:8080',

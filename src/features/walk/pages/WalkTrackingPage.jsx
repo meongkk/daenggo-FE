@@ -5,11 +5,11 @@ import {
     saveWalkTrackPoints,
     uploadWalkPhoto
 } from '../api/walkApi';
-import {getMyPetsApi} from '../api/petApi.js';
+// import {getMyPetsApi} from '../api/petApi.js'; // 펫 등록 수정 중
+import { getMyPets as fetchMyPets } from '../../pet/api/petApi';
 import BottomNavigation from '../../../components/BottomNavigation';
 import './Walk.css';
 import KakaoMap from "../../../components/KakaoMap";
-const TEMP_USER_ID = Number(import.meta.env.VITE_BOARD_WRITER_ID ?? 1);
 
 const GPS_BATCH_SIZE = 5;
 
@@ -88,13 +88,22 @@ export default function WalkTrackingPage() {
         gpsWatchIdRef.current = null;
     }
 
+    // 산책 시작: 타이머는 여기서 딱 한 번만 시작한다.
+    // (watchPosition 콜백 안에 두면 GPS 좌표를 받을 때마다 타이머가 새로 생겨 겹치는 문제가 있었음)
     useEffect(() => {
         if (!walkId) return;
-    
+
         setMessage('산책을 기록하고 있어요.');
-    
+
+        walkStartTimeRef.current = Date.now();
+        timerIdRef.current = window.setInterval(() => {
+            setElapsedSeconds(
+                Math.floor((Date.now() - walkStartTimeRef.current) / 1000)
+            );
+        }, 1000);
+
         beginDeviceTracking(Number(walkId));
-    
+
         return () => {
             stopDeviceTracking();
 
@@ -102,21 +111,15 @@ export default function WalkTrackingPage() {
                 URL.revokeObjectURL(photoPreviewRef.current);
             }
         };
-
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [walkId]);
 
-    useEffect(() => {
 
-        if(showCompleteModal){
-            getMyPets();
-        }
-    
-    }, [showCompleteModal]);
 
 
     function queueGpsBatch(activeWalkId, points) {
         pendingGpsRequestRef.current = pendingGpsRequestRef.current
-            .then(() => saveWalkTrackPoints(activeWalkId, TEMP_USER_ID, points))
+            .then(() => saveWalkTrackPoints(activeWalkId, points))
             .catch((error) => {
                 setErrorMessage(
                     error.response?.data?.message
@@ -124,38 +127,51 @@ export default function WalkTrackingPage() {
                 );
             });
     }
-    
+
     useEffect(() => {
+        if (!showCompleteModal) return;
 
-        if(showCompleteModal){
-            getMyPets();
+        async function loadMyPets() {
+            try {
+                setErrorMessage('');
+
+                const pets = await fetchMyPets();
+
+                setMyPets(pets);
+            } catch (error) {
+                setErrorMessage(
+                    error.response?.data?.message
+                    ?? '반려동물 목록을 불러오지 못했어요.'
+                );
+            }
         }
-    
+
+        loadMyPets();
     }, [showCompleteModal]);
-    
-    
-    // 여기에 추가
-    async function getMyPets(){
-    
-        try {
-    
-            // TODO: 실제 API 연결
-            const res = await getMyPetsApi();
-    
-            setMyPets(res.data);
-    
-        } catch(error){
-    
-            console.log("반려동물 조회 실패", error);
-    
-        }
-    
-    }
+
+
+
+    // useEffect(() => { 펫 등록 추가 중
+    //     if(showCompleteModal){
+    //         getMyPets();
+    //     }
+    // }, [showCompleteModal]);
+
+
+    // // 여기에 추가
+    // async function getMyPets(){ 이게 2개 있다고 지우라는데?
+    //     try {
+    //         // TODO: 실제 API 연결
+    //         const res = await getMyPetsApi();
+    //         setMyPets(res.data);
+    //     } catch(error){
+    //         console.log("반려동물 조회 실패", error);
+    //     }
+    // }
     
 
+    // GPS 좌표 수신 전용. 시간 측정과는 분리되어 있다.
     function beginDeviceTracking(activeWalkId) {
-        
-
         if (!navigator.geolocation) {
             setErrorMessage('이 브라우저는 GPS 위치 기능을 지원하지 않아요.');
             return;
@@ -163,14 +179,6 @@ export default function WalkTrackingPage() {
 
         gpsWatchIdRef.current = navigator.geolocation.watchPosition(
             (position) => {
-
-                const startedAt = Date.now();
-                
-                timerIdRef.current = window.setInterval(() => {
-                    setElapsedSeconds(Math.floor((Date.now() - startedAt) / 1000));
-                }, 1000);
-               
-
                 setIsLocationLoading(false);
 
                 console.log('GPS 들어옴', position.coords.latitude, position.coords.longitude);
@@ -183,7 +191,6 @@ export default function WalkTrackingPage() {
                     ...prev,
                     nextPosition
                 ]);
-
 
                 if (lastPositionRef.current) {
                     const movedDistance = getDistanceInMeters(lastPositionRef.current, nextPosition);
@@ -205,7 +212,7 @@ export default function WalkTrackingPage() {
                     console.log("서버 전송 데이터", {
                         trackPoints: batch
                     });
-                    
+
                     queueGpsBatch(activeWalkId, batch);
                 }
             },
@@ -230,7 +237,7 @@ export default function WalkTrackingPage() {
 
         try {
             setErrorMessage('');
-            await uploadWalkPhoto(TEMP_USER_ID, walkId, imageFile, currentPosition);
+            await uploadWalkPhoto(walkId, imageFile, currentPosition);
             setMessage('사진을 산책 기록에 저장했어요.');
         } catch (error) {
             setErrorMessage(
@@ -240,7 +247,7 @@ export default function WalkTrackingPage() {
         }
     }
 
-    async function handleCompleteWalk() {
+    function handleCompleteWalk() {
         if (!walkId) return;
         stopDeviceTracking();
 
@@ -252,77 +259,28 @@ export default function WalkTrackingPage() {
         );
 
         setShowCompleteModal(true);
-
-        return;
-
-        // try {
-        //     if (gpsBufferRef.current.length > 0) {
-        //         const lastBatch = gpsBufferRef.current.splice(0);
-        //         queueGpsBatch(walkId, lastBatch);
-        //     }
-        //     await pendingGpsRequestRef.current;
-
-        //     const data = await completeWalk(walkId, TEMP_USER_ID, {
-        //         title: `${new Date().toLocaleDateString('ko-KR')} 산책`,
-        //         memo: '',
-        //         petIds: [],
-        //         distanceM: Number(distanceM.toFixed(2)),
-        //     });
-        //     const completedWalkId = data?.walkRecordId ?? walkId;
-        //     navigate(`/walk/${completedWalkId}`);
-        // } catch (error) {
-        //     console.log("산책 종료 에러:", error);
-        //     console.log("응답:", error.response?.data);
-
-        //     setPhase('active');
-        //     setErrorMessage(
-        //         error.response?.data?.message
-        //         ?? '산책 종료 정보를 저장하지 못했어요. 다시 눌러 주세요.',
-        //     );
-        // }
     }
 
-    function togglePet(petId){
-
-        setSelectedPetIds((prev)=>{
-    
-            if(prev.includes(petId)){
-    
-                return prev.filter(
-                    id => id !== petId
-                );
-    
+    function togglePet(petId) {
+        setSelectedPetIds((prev) => {
+            if (prev.includes(petId)) {
+                return prev.filter(id => id !== petId);
             }
-    
-            return [
-                ...prev,
-                petId
-            ];
-    
+            return [...prev, petId];
         });
-    
     }
 
     async function saveCompletedWalk() {
-
         try {
-    
             if (gpsBufferRef.current.length > 0) {
                 const lastBatch = gpsBufferRef.current.splice(0);
-    
-                queueGpsBatch(
-                    walkId,
-                    lastBatch
-                );
+                queueGpsBatch(walkId, lastBatch);
             }
-    
-    
+
             await pendingGpsRequestRef.current;
-    
-    
+
             const data = await completeWalk(
                 walkId,
-                TEMP_USER_ID,
                 {
                     title: walkTitle,
                     memo: walkMemo,
@@ -330,28 +288,20 @@ export default function WalkTrackingPage() {
                     distanceM: Number(distanceM.toFixed(2)),
                 }
             );
-    
-    
-            const completedWalkId =
-                data?.walkRecordId ?? walkId;
-    
-    
+
+            const completedWalkId = data?.walkRecordId ?? walkId;
+
             navigate(`/walk/${completedWalkId}`);
-    
-    
-        } catch(error){
-    
+        } catch (error) {
             console.log(error);
-    
+
             setPhase('active');
-    
+
             setErrorMessage(
                 error.response?.data?.message
                 ?? '산책 저장 실패'
             );
-    
         }
-    
     }
 
     const isActive = phase === 'active';
@@ -364,23 +314,18 @@ export default function WalkTrackingPage() {
             </header>
 
             <section className="walk-map-canvas" aria-label="산책 위치 지도 영역">
-            {isLocationLoading ? (
-                <div className="walk-location-loading">
-                    <p>📍</p>
-                    <strong>현재 위치를 확인하고 있어요.</strong>
-                    <span>잠시만 기다려 주세요.</span>
-                </div>
-            ) : (
-                <KakaoMap 
-                    currentPosition={currentPosition} 
-                    routePoints={routePoints} 
-                />
-            )}
-                <KakaoMap currentPosition={currentPosition} routePoints={routePoints} />
-                {/* <div className="walk-current-marker" aria-label="현재 위치">
-                    <span>🐾</span>
-                    {currentPosition && <i />}
-                </div> */}
+                {isLocationLoading ? (
+                    <div className="walk-location-loading">
+                        <p>📍</p>
+                        <strong>현재 위치를 확인하고 있어요.</strong>
+                        <span>잠시만 기다려 주세요.</span>
+                    </div>
+                ) : (
+                    <KakaoMap
+                        currentPosition={currentPosition}
+                        routePoints={routePoints}
+                    />
+                )}
 
                 {savedPhotoUrl && (
                     <img className="walk-map-photo-preview" src={savedPhotoUrl} alt="방금 촬영한 산책 사진" />
@@ -400,7 +345,6 @@ export default function WalkTrackingPage() {
                 {errorMessage && <p className="walk-map-error" role="alert">{errorMessage}</p>}
 
                 <div className="walk-tracking-actions">
-
                     <label className="walk-secondary-button">
                         사진 찍기
                         <input
@@ -412,7 +356,6 @@ export default function WalkTrackingPage() {
                         />
                     </label>
 
-
                     <button
                         type="button"
                         className="walk-primary-button"
@@ -423,105 +366,60 @@ export default function WalkTrackingPage() {
                             ? '저장 중...'
                             : '산책 완료하기'}
                     </button>
-
                 </div>
             </section>
 
             {showCompleteModal && (
                 <div className="walk-modal-overlay">
-
                     <div className="walk-complete-modal">
-
-                        <h2>
-                            산책 기록 저장
-                        </h2>
-
+                        <h2>산책 기록 저장</h2>
 
                         <input
                             value={walkTitle}
-                            onChange={(e)=>setWalkTitle(e.target.value)}
+                            onChange={(e) => setWalkTitle(e.target.value)}
                             placeholder="산책 제목"
                         />
 
-
                         <textarea
                             value={walkMemo}
-                            onChange={(e)=>setWalkMemo(e.target.value)}
+                            onChange={(e) => setWalkMemo(e.target.value)}
                             placeholder="산책 메모"
                         />
 
-                        <h3>
-                            함께 산책한 반려동물
-                        </h3>
-
+                        <h3>함께 산책한 반려동물</h3>
 
                         <div
                             className="pet-selector-box"
                             onClick={() => setPetSelectorOpen(!petSelectorOpen)}
                         >
-
-                        {
-                            selectedPetIds.length === 0
-                            ?
-                            "반려동물 선택"
-                            :
-                            myPets
-                                .filter(
-                                    pet => selectedPetIds.includes(pet.petId)
-                                )
-                                .map(
-                                    pet => pet.name
-                                )
-                                .join(", ")
-                        }
-
-                        ▼
-
+                            {
+                                selectedPetIds.length === 0
+                                    ? "반려동물 선택"
+                                    : myPets
+                                        .filter(pet => selectedPetIds.includes(pet.petId))
+                                        .map(pet => pet.name)
+                                        .join(", ")
+                            }
+                            ▼
                         </div>
 
-
-
-                        {
-                        petSelectorOpen && (
-
+                        {petSelectorOpen && (
                             <div className="pet-selector-list">
-
-                            {
-                                myPets.map((pet)=>(
-
+                                {myPets.map((pet) => (
                                     <label
                                         key={pet.petId}
                                         className="pet-item"
                                     >
-
                                         <input
                                             type="checkbox"
-                                            checked={
-                                                selectedPetIds.includes(
-                                                    pet.petId
-                                                )
-                                            }
-                                            onChange={()=>
-                                                togglePet(
-                                                    pet.petId
-                                                )
-                                            }
+                                            checked={selectedPetIds.includes(pet.petId)}
+                                            onChange={() => togglePet(pet.petId)}
                                         />
-
                                         {pet.name}
-
                                     </label>
-
-                                ))
-                            }
-
+                                ))}
                             </div>
-
-                        )
-                        }
-
-
-
+                        )}
 
                         <button
                             className="walk-primary-button"
@@ -529,9 +427,7 @@ export default function WalkTrackingPage() {
                         >
                             저장하기
                         </button>
-
                     </div>
-
                 </div>
             )}
 

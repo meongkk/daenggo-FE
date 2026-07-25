@@ -2,20 +2,34 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import BottomNavigation from '../../../components/BottomNavigation';
 import { loadKakaoMapSdk } from '../api/kakaoMapLoader';
 import { findKakaoPlace } from '../api/kakaoPlaceService';
-import { getNearbyPlaces, getPlaceDetail } from '../api/placeApi';
+import {
+  getNearbyPlaces,
+  getNearbyPlacesForPet,
+  getPlaceDetail,
+} from '../api/placeApi';
 import FavoritePlacesPanel from '../components/FavoritePlacesPanel';
 import PlaceDetailPanel from '../components/PlaceDetailPanel';
 import PlaceImage from '../components/PlaceImage';
+import PlaceSearchPanel from '../components/PlaceSearchPanel';
 import './Map.css';
+
 
 const KAKAO_APP_KEY = import.meta.env.VITE_KAKAO_MAP_JAVASCRIPT_KEY;
 const FAVORITES_STORAGE_KEY = 'daenggo-backend-place-favorites';
 const DEFAULT_CENTER = { latitude: 37.5665, longitude: 126.978 };
+const EMPTY_PLACE_FILTERS = {
+  category: '',
+  petId: '',
+  indoorAllowedOnly: false,
+  petWeight: '',
+  petSize: '',
+  isDangerous: false,
+};
 
 // 백엔드 Place.category에 실제로 저장되는 값과 정확히 맞춥니다.
 const PLACE_CATEGORIES = [
-  { id: 'restaurant', label: '맛집·카페', icon: '🍴', value: 'RESTAURANT' },
   { id: 'all', label: '전체 장소', icon: '🐾', value: null },
+  { id: 'restaurant', label: '맛집·카페', icon: '🍴', value: 'RESTAURANT' },
   { id: 'tourist', label: '관광지', icon: '🌲', value: 'TOURIST' },
   { id: 'stay', label: '숙소', icon: '🏠', value: 'LODGING' },
 ];
@@ -88,19 +102,18 @@ function getKakaoMapLink(place) {
   return `https://map.kakao.com/link/map/${name},${place.latitude},${place.longitude}`;
 }
 
-/** 현재 위치는 일반 장소와 구분하기 위해 파란색 커스텀 마커를 사용합니다. */
-function createMarkerImage(kakao, color) {
+/** 현재 위치를 빨간색 원과 흰색 테두리로 표시합니다. */
+function createCurrentLocationMarkerImage(kakao) {
   const markerSvg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="36" height="44" viewBox="0 0 36 44">
-      <path fill="${color}" d="M18 1C8.6 1 1 8.5 1 17.8 1 30.1 18 43 18 43s17-12.9 17-25.2C35 8.5 27.4 1 18 1Z"/>
-      <circle cx="18" cy="17" r="6.5" fill="white"/>
+    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">
+      <circle cx="14" cy="14" r="10" fill="#FF3B30" stroke="white" stroke-width="4"/>
     </svg>`;
   const imageUrl = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(markerSvg)}`;
 
   return new kakao.maps.MarkerImage(
     imageUrl,
-    new kakao.maps.Size(36, 44),
-    { offset: new kakao.maps.Point(18, 43) },
+    new kakao.maps.Size(28, 28),
+    { offset: new kakao.maps.Point(14, 14) },
   );
 }
 
@@ -132,8 +145,12 @@ function MapPage() {
   const markersRef = useRef([]);
   const currentLocationMarkerRef = useRef(null);
   const requestSequenceRef = useRef(0);
-  const activeCategoryValueRef = useRef('RESTAURANT');
+  const activeCategoryValueRef = useRef('ALL');
   const activeKeywordRef = useRef('');
+  // 필터 창을 닫아도 지도 이동 뒤 같은 조건으로 다시 조회하기 위해 Ref에 저장합니다.
+  const placeFiltersRef = useRef(EMPTY_PLACE_FILTERS);
+  // 사용자가 검색·카테고리·현재 위치 버튼을 누르기 전에는 장소 API를 호출하지 않습니다.
+  const hasRequestedPlacesRef = useRef(false);
 
   // useState 값이 바뀌면 React가 지도 위 버튼과 장소 카드를 다시 그립니다.
   const [sdkState, setSdkState] = useState('loading');
@@ -142,12 +159,19 @@ function MapPage() {
   const [places, setPlaces] = useState([]);
   const [selectedPlace, setSelectedPlace] = useState(null);
   const [isPlaceDetailOpen, setIsPlaceDetailOpen] = useState(false);
-  const [activeCategory, setActiveCategory] = useState('restaurant');
+  // 처음에는 어떤 카테고리도 선택하지 않아 주황색 활성 버튼이 없습니다.
+  const [activeCategory, setActiveCategory] = useState(null);
   const [favoritePlaces, setFavoritePlaces] = useState(readFavoritePlaces);
   const [isFavoritesOpen, setIsFavoritesOpen] = useState(false);
+  const [isSearchPanelOpen, setIsSearchPanelOpen] = useState(false);
+  const [searchPanelInitialView, setSearchPanelInitialView] = useState('search');
+  const [placeFilters, setPlaceFilters] = useState(EMPTY_PLACE_FILTERS);
   const [isSearching, setIsSearching] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
-  const [notice, setNotice] = useState('');
+  const [notice, setNotice] = useState('장소 종류를 누르거나 검색하면 주변 장소를 보여드려요.');
+  const activeMapFilterCount = Object.entries(placeFilters).filter(
+    ([key, value]) => key !== 'category' ? Boolean(value) : value !== '',
+  ).length;
 
   /** 카카오 지도의 현재 경계를 백엔드가 요구하는 네 좌표로 바꿉니다. */
   const readMapBounds = useCallback(() => {
@@ -165,7 +189,7 @@ function MapPage() {
   }, []);
 
   /** 현재 지도 범위와 필터를 백엔드에 보내 DB 장소를 가져옵니다. */
-  const loadPlacesFromBackend = useCallback(async () => {
+const loadPlacesFromBackend = useCallback(async () => {
     const bounds = readMapBounds();
     if (!bounds) return;
 
@@ -174,37 +198,46 @@ function MapPage() {
     setNotice('');
 
     try {
-      const responsePlaces = await getNearbyPlaces({
-        bounds,
-        category: activeCategoryValueRef.current,
-      });
+      const appliedFilters = placeFiltersRef.current;
+      const category = appliedFilters.category || activeCategoryValueRef.current;
+      const responsePlaces = appliedFilters.petId
+        ? await getNearbyPlacesForPet({
+            bounds,
+            petId: appliedFilters.petId,
+            category,
+            indoorAllowedOnly: appliedFilters.indoorAllowedOnly,
+          })
+        : await getNearbyPlaces({
+            bounds,
+            category,
+            indoorAllowedOnly: appliedFilters.indoorAllowedOnly,
+            petWeight: appliedFilters.petWeight,
+            petSize: appliedFilters.petSize,
+            isDangerous: appliedFilters.isDangerous,
+          });
 
-      // 지도를 빠르게 움직였을 때 늦게 도착한 이전 응답은 화면에 표시하지 않습니다.
       if (requestId !== requestSequenceRef.current) return;
 
       const normalizedPlaces = (Array.isArray(responsePlaces) ? responsePlaces : [])
         .map(normalizeNearbyPlace)
         .filter(
           (place) => Number.isFinite(place.latitude) && Number.isFinite(place.longitude),
-        );
-      const normalizedKeyword = activeKeywordRef.current.toLocaleLowerCase();
-      const nextPlaces = normalizedKeyword
-        ? normalizedPlaces.filter((place) =>
-            place.name.toLocaleLowerCase().includes(normalizedKeyword),
-          )
-        : normalizedPlaces;
+        )
+        .filter((place) => {
+          const keyword = activeKeywordRef.current.trim().toLocaleLowerCase();
+          return !keyword || place.name?.toLocaleLowerCase().includes(keyword);
+        });
 
-      setPlaces(nextPlaces);
-      // 마커를 누르면 panTo로 지도가 이동하고 장소 목록을 다시 조회합니다.
-      // 이때 선택한 장소가 새 지도 범위에도 있으면 상세 카드를 그대로 유지합니다.
+      // 백엔드가 필터링해서 보내준 결과를 지도 마커용 State에 저장합니다.
+      setPlaces(normalizedPlaces);
       setSelectedPlace((current) =>
-        current && nextPlaces.some((place) => place.id === current.id)
+        current && normalizedPlaces.some((place) => place.id === current.id)
           ? current
           : null,
       );
       setNotice(
-        nextPlaces.length > 0
-          ? `반려동물 동반 장소 ${nextPlaces.length}곳을 찾았어요.`
+        normalizedPlaces.length > 0
+          ? `반려동물 동반 장소 ${normalizedPlaces.length}곳을 찾았어요.`
           : '현재 지도 범위에 조건에 맞는 장소가 없어요.',
       );
     } catch (error) {
@@ -224,7 +257,7 @@ function MapPage() {
         setIsSearching(false);
       }
     }
-  }, [readMapBounds]);
+}, [readMapBounds]);
 
   // 화면이 처음 열릴 때 카카오 지도 객체를 만들고, 지도 이동이 끝날 때 DB를 다시 조회합니다.
   useEffect(() => {
@@ -247,9 +280,12 @@ function MapPage() {
         mapRef.current = initializedMap;
         setSdkState('ready');
 
-        idleHandler = () => loadPlacesFromBackend();
+        idleHandler = () => {
+          if (hasRequestedPlacesRef.current) {
+            loadPlacesFromBackend();
+          }
+        };
         kakao.maps.event.addListener(initializedMap, 'idle', idleHandler);
-        loadPlacesFromBackend();
       })
       .catch((error) => {
         if (disposed) return;
@@ -346,13 +382,29 @@ function MapPage() {
     });
   }, [openPlacePreview, places, sdkState]);
 
-  const handleSearchSubmit = (event) => {
-    event.preventDefault();
-    activeKeywordRef.current = query.trim();
-    loadPlacesFromBackend();
-  };
-
   const handleCategoryClick = (category) => {
+    activeKeywordRef.current = '';
+    // 이미 켜진 카테고리를 다시 누르면 조회를 중단하고 지도 마커를 모두 지웁니다.
+    if (activeCategory === category.id) {
+      requestSequenceRef.current += 1;
+      hasRequestedPlacesRef.current = false;
+      activeCategoryValueRef.current = 'ALL';
+      activeKeywordRef.current = '';
+      placeFiltersRef.current = EMPTY_PLACE_FILTERS;
+      setPlaceFilters(EMPTY_PLACE_FILTERS);
+      setActiveCategory(null);
+      setQuery('');
+      setPlaces([]);
+      setSelectedPlace(null);
+      setIsPlaceDetailOpen(false);
+      setIsSearching(false);
+
+      return;
+    }
+
+    hasRequestedPlacesRef.current = true;
+    placeFiltersRef.current = EMPTY_PLACE_FILTERS;
+    setPlaceFilters(EMPTY_PLACE_FILTERS);
     activeCategoryValueRef.current = category.value;
     activeKeywordRef.current = '';
     setQuery('');
@@ -365,6 +417,54 @@ function MapPage() {
   const handleFavoritesClick = () => {
     setIsPlaceDetailOpen(false);
     setIsFavoritesOpen(true);
+  };
+
+  /** 필터 창에서 받은 결과를 지도 마커에도 적용하고, 지도 이동 뒤에도 같은 필터를 유지합니다. */
+  const handleFiltersApplied = ({ places: responsePlaces, filters, keyword }) => {
+    const normalizedPlaces = responsePlaces
+      .map(normalizeNearbyPlace)
+      .filter((place) => Number.isFinite(place.latitude) && Number.isFinite(place.longitude));
+    const matchedCategory = PLACE_CATEGORIES.find(
+      (category) => category.value === filters.category,
+    );
+
+    // 이전 지도 이동 요청이 늦게 도착해 새 필터 결과를 덮어쓰지 못하게 합니다.
+    requestSequenceRef.current += 1;
+    placeFiltersRef.current = { ...filters };
+    activeCategoryValueRef.current = filters.category || null;
+    activeKeywordRef.current = keyword;
+    hasRequestedPlacesRef.current = true;
+    setPlaceFilters({ ...filters });
+    setActiveCategory(matchedCategory?.id ?? null);
+    setPlaces(normalizedPlaces);
+    setSelectedPlace(null);
+    setIsPlaceDetailOpen(false);
+    setNotice(
+      normalizedPlaces.length > 0
+        ? `선택한 조건의 장소 ${normalizedPlaces.length}곳을 찾았어요.`
+        : '현재 지도 범위에 조건에 맞는 장소가 없어요.',
+    );
+  };
+
+  /** 검색 결과를 누르면 해당 장소를 지도에 표시하고 미리보기를 엽니다. */
+  const handleSearchPlaceSelect = (rawPlace) => {
+    const place = normalizeNearbyPlace(rawPlace);
+    if (!Number.isFinite(place.latitude) || !Number.isFinite(place.longitude)) return;
+
+    hasRequestedPlacesRef.current = true;
+    activeKeywordRef.current = '';
+    placeFiltersRef.current = EMPTY_PLACE_FILTERS;
+    setPlaceFilters(EMPTY_PLACE_FILTERS);
+    activeCategoryValueRef.current = place.categoryCode ?? null;
+    const matchedCategory = PLACE_CATEGORIES.find(
+      (category) => category.value === place.categoryCode,
+    );
+
+    setQuery(place.name);
+    setPlaces([place]);
+    setActiveCategory(matchedCategory?.id ?? null);
+    setIsSearchPanelOpen(false);
+    openPlacePreview(place);
   };
 
   const handleFavoriteToggle = (place) => {
@@ -380,12 +480,14 @@ function MapPage() {
   };
 
   const handleCurrentLocation = () => {
+    activeKeywordRef.current = '';
     if (!navigator.geolocation) {
       setNotice('이 브라우저는 현재 위치 기능을 지원하지 않아요.');
       return;
     }
 
     setIsLocating(true);
+    hasRequestedPlacesRef.current = true;
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
         const kakao = kakaoRef.current;
@@ -397,7 +499,7 @@ function MapPage() {
         currentLocationMarkerRef.current = new kakao.maps.Marker({
           map,
           position,
-          image: createMarkerImage(kakao, '#1677FF'),
+          image: createCurrentLocationMarkerImage(kakao),
           title: '내 위치',
         });
         setIsLocating(false);
@@ -412,11 +514,10 @@ function MapPage() {
   };
 
   const handleCustomizedPlaces = () => {
-    activeCategoryValueRef.current = 'RESTAURANT';
-    activeKeywordRef.current = '';
-    setActiveCategory('restaurant');
-    setQuery('');
-    loadPlacesFromBackend();
+    const restaurantCategory = PLACE_CATEGORIES.find(
+      (category) => category.id === 'restaurant',
+    );
+    handleCategoryClick(restaurantCategory);
   };
 
   const isSelectedFavorite = selectedPlace
@@ -434,11 +535,15 @@ function MapPage() {
         <div ref={mapElementRef} className="kakao-map-canvas" />
 
         <div className="map-top-controls">
-          <form className="map-search-bar" onSubmit={handleSearchSubmit}>
+          <div className="map-search-bar">
             <button
               className="map-search-submit"
-              type="submit"
-              aria-label="DB 장소 검색"
+              type="button"
+              onClick={() => {
+                setSearchPanelInitialView('search');
+                setIsSearchPanelOpen(true);
+              }}
+              aria-label="장소 검색 화면 열기"
               disabled={sdkState !== 'ready'}
             >
               <SearchIcon />
@@ -446,7 +551,15 @@ function MapPage() {
             <input
               type="search"
               value={query}
-              onChange={(event) => setQuery(event.target.value)}
+              readOnly
+              onClick={() => {
+                setSearchPanelInitialView('search');
+                setIsSearchPanelOpen(true);
+              }}
+              onFocus={() => {
+                setSearchPanelInitialView('search');
+                setIsSearchPanelOpen(true);
+              }}
               placeholder="등록된 반려동물 동반 장소 검색"
               aria-label="장소 검색어"
             />
@@ -458,9 +571,25 @@ function MapPage() {
             >
               <HeartIcon filled={favoritePlaces.length > 0} />
             </button>
-          </form>
+          </div>
 
           <div className="map-category-list" aria-label="장소 종류 선택">
+            {/* 필터 버튼은 가로 목록 맨 앞에 두어 작은 모바일 화면에서도 바로 보이게 합니다. */}
+            <button
+              className={`map-category-chip map-filter-chip ${activeMapFilterCount > 0 ? 'active' : ''}`}
+              type="button"
+              onClick={() => {
+                setSearchPanelInitialView('filters');
+                setIsSearchPanelOpen(true);
+              }}
+              disabled={sdkState !== 'ready'}
+            >
+              <span aria-hidden="true">☷</span>
+              필터
+              {activeMapFilterCount > 0 && (
+                <b className="map-filter-count">{activeMapFilterCount}</b>
+              )}
+            </button>
             {PLACE_CATEGORIES.map((category) => (
               <button
                 key={category.id}
@@ -511,16 +640,16 @@ function MapPage() {
               <span aria-hidden="true">⌖</span>
             </button>
 
-            {!selectedPlace && (
-              <button
-                className="map-custom-place"
-                type="button"
-                onClick={handleCustomizedPlaces}
-              >
-                <span aria-hidden="true">☷</span>
-                반려동물 맛집·카페
-              </button>
-            )}
+            {/*{!selectedPlace && (*/}
+            {/*  // <button*/}
+            {/*  //   className="map-custom-place"*/}
+            {/*  //   type="button"*/}
+            {/*  //   onClick={handleCustomizedPlaces}*/}
+            {/*  // >*/}
+            {/*  //   <span aria-hidden="true">☷</span>*/}
+            {/*  //   반려동물 맛집·카페*/}
+            {/*  // </button>*/}
+            {/*)}*/}
           </>
         )}
 
@@ -611,6 +740,18 @@ function MapPage() {
           onClose={() => setIsFavoritesOpen(false)}
           onSelect={(place) => openPlacePreview(place, { fromFavorites: true })}
           onRemove={handleFavoriteToggle}
+        />
+      )}
+
+      {isSearchPanelOpen && (
+        <PlaceSearchPanel
+          bounds={readMapBounds()}
+          initialQuery={searchPanelInitialView === 'filters' ? '' : query}
+          initialView={searchPanelInitialView}
+          initialFilters={placeFilters}
+          onClose={() => setIsSearchPanelOpen(false)}
+          onFiltersApplied={handleFiltersApplied}
+          onSelectPlace={handleSearchPlaceSelect}
         />
       )}
 
