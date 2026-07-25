@@ -1,4 +1,5 @@
 import axios from 'axios';
+import apiClient from '../../../lib/apiClient';
 
 const PLACE_API_URL = import.meta.env.VITE_PLACE_API_URL ?? '/api/places';
 
@@ -25,6 +26,31 @@ export async function getNearbyPlaces({
       petWeight: petWeight || undefined,
       petSize: petSize || undefined,
       isDangerous: isDangerous || undefined,
+    },
+  });
+
+  return response.data;
+}
+
+/**
+ * 선택한 내 반려동물의 몸무게·크기·맹견 여부를 백엔드가 자동으로 적용합니다.
+ * 사용자가 직접 입력한 값이 아니라 DB에 등록한 반려동물 정보를 사용합니다.
+ */
+export async function getNearbyPlacesForPet({
+  bounds,
+  petId,
+  category,
+  indoorAllowedOnly,
+}) {
+  const response = await apiClient.get(`${PLACE_API_URL}/nearby/pet`, {
+    params: {
+      swLat: bounds.swLat,
+      swLng: bounds.swLng,
+      neLat: bounds.neLat,
+      neLng: bounds.neLng,
+      petId,
+      category: category && category !== 'ALL' ? category : undefined,
+      indoorAllowedOnly: indoorAllowedOnly || undefined,
     },
   });
 

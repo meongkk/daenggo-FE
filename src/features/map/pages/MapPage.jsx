@@ -2,7 +2,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import BottomNavigation from '../../../components/BottomNavigation';
 import { loadKakaoMapSdk } from '../api/kakaoMapLoader';
 import { findKakaoPlace } from '../api/kakaoPlaceService';
-import { getNearbyPlaces, getPlaceDetail } from '../api/placeApi';
+import {
+  getNearbyPlaces,
+  getNearbyPlacesForPet,
+  getPlaceDetail,
+} from '../api/placeApi';
 import FavoritePlacesPanel from '../components/FavoritePlacesPanel';
 import PlaceDetailPanel from '../components/PlaceDetailPanel';
 import PlaceImage from '../components/PlaceImage';
@@ -15,6 +19,7 @@ const FAVORITES_STORAGE_KEY = 'daenggo-backend-place-favorites';
 const DEFAULT_CENTER = { latitude: 37.5665, longitude: 126.978 };
 const EMPTY_PLACE_FILTERS = {
   category: '',
+  petId: '',
   indoorAllowedOnly: false,
   petWeight: '',
   petSize: '',
@@ -159,10 +164,14 @@ function MapPage() {
   const [favoritePlaces, setFavoritePlaces] = useState(readFavoritePlaces);
   const [isFavoritesOpen, setIsFavoritesOpen] = useState(false);
   const [isSearchPanelOpen, setIsSearchPanelOpen] = useState(false);
+  const [searchPanelInitialView, setSearchPanelInitialView] = useState('search');
   const [placeFilters, setPlaceFilters] = useState(EMPTY_PLACE_FILTERS);
   const [isSearching, setIsSearching] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const [notice, setNotice] = useState('장소 종류를 누르거나 검색하면 주변 장소를 보여드려요.');
+  const activeMapFilterCount = Object.entries(placeFilters).filter(
+    ([key, value]) => key !== 'category' ? Boolean(value) : value !== '',
+  ).length;
 
   /** 카카오 지도의 현재 경계를 백엔드가 요구하는 네 좌표로 바꿉니다. */
   const readMapBounds = useCallback(() => {
@@ -189,14 +198,23 @@ const loadPlacesFromBackend = useCallback(async () => {
     setNotice('');
 
     try {
-      const responsePlaces = await getNearbyPlaces({
-        bounds,
-        category: placeFiltersRef.current.category || activeCategoryValueRef.current,
-        indoorAllowedOnly: placeFiltersRef.current.indoorAllowedOnly,
-        petWeight: placeFiltersRef.current.petWeight,
-        petSize: placeFiltersRef.current.petSize,
-        isDangerous: placeFiltersRef.current.isDangerous,
-      });
+      const appliedFilters = placeFiltersRef.current;
+      const category = appliedFilters.category || activeCategoryValueRef.current;
+      const responsePlaces = appliedFilters.petId
+        ? await getNearbyPlacesForPet({
+            bounds,
+            petId: appliedFilters.petId,
+            category,
+            indoorAllowedOnly: appliedFilters.indoorAllowedOnly,
+          })
+        : await getNearbyPlaces({
+            bounds,
+            category,
+            indoorAllowedOnly: appliedFilters.indoorAllowedOnly,
+            petWeight: appliedFilters.petWeight,
+            petSize: appliedFilters.petSize,
+            isDangerous: appliedFilters.isDangerous,
+          });
 
       if (requestId !== requestSequenceRef.current) return;
 
@@ -521,7 +539,10 @@ const loadPlacesFromBackend = useCallback(async () => {
             <button
               className="map-search-submit"
               type="button"
-              onClick={() => setIsSearchPanelOpen(true)}
+              onClick={() => {
+                setSearchPanelInitialView('search');
+                setIsSearchPanelOpen(true);
+              }}
               aria-label="장소 검색 화면 열기"
               disabled={sdkState !== 'ready'}
             >
@@ -531,8 +552,14 @@ const loadPlacesFromBackend = useCallback(async () => {
               type="search"
               value={query}
               readOnly
-              onClick={() => setIsSearchPanelOpen(true)}
-              onFocus={() => setIsSearchPanelOpen(true)}
+              onClick={() => {
+                setSearchPanelInitialView('search');
+                setIsSearchPanelOpen(true);
+              }}
+              onFocus={() => {
+                setSearchPanelInitialView('search');
+                setIsSearchPanelOpen(true);
+              }}
               placeholder="등록된 반려동물 동반 장소 검색"
               aria-label="장소 검색어"
             />
@@ -547,6 +574,22 @@ const loadPlacesFromBackend = useCallback(async () => {
           </div>
 
           <div className="map-category-list" aria-label="장소 종류 선택">
+            {/* 필터 버튼은 가로 목록 맨 앞에 두어 작은 모바일 화면에서도 바로 보이게 합니다. */}
+            <button
+              className={`map-category-chip map-filter-chip ${activeMapFilterCount > 0 ? 'active' : ''}`}
+              type="button"
+              onClick={() => {
+                setSearchPanelInitialView('filters');
+                setIsSearchPanelOpen(true);
+              }}
+              disabled={sdkState !== 'ready'}
+            >
+              <span aria-hidden="true">☷</span>
+              필터
+              {activeMapFilterCount > 0 && (
+                <b className="map-filter-count">{activeMapFilterCount}</b>
+              )}
+            </button>
             {PLACE_CATEGORIES.map((category) => (
               <button
                 key={category.id}
@@ -703,7 +746,8 @@ const loadPlacesFromBackend = useCallback(async () => {
       {isSearchPanelOpen && (
         <PlaceSearchPanel
           bounds={readMapBounds()}
-          initialQuery={query}
+          initialQuery={searchPanelInitialView === 'filters' ? '' : query}
+          initialView={searchPanelInitialView}
           initialFilters={placeFilters}
           onClose={() => setIsSearchPanelOpen(false)}
           onFiltersApplied={handleFiltersApplied}

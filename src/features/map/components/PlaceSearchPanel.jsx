@@ -1,5 +1,16 @@
-import { useMemo, useState } from 'react';
-import { getNearbyPlaces, searchPlacesByKeyword } from '../api/placeApi';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { hasStoredSession } from '../../auth/api/tokenStorage';
+import { getMyPets } from '../../pet/api/petApi';
+import {
+  getPetSizeByWeight,
+  getPetSizeLabel,
+  PET_SIZE_OPTIONS,
+} from '../../pet/utils/petSize';
+import {
+  getNearbyPlaces,
+  getNearbyPlacesForPet,
+  searchPlacesByKeyword,
+} from '../api/placeApi';
 import PlaceImage from './PlaceImage';
 import './PlaceSearchPanel.css';
 
@@ -17,14 +28,9 @@ const CATEGORY_OPTIONS = [
   { label: '기타', value: 'ETC' },
 ];
 
-const SIZE_OPTIONS = [
-  { label: '소형견', value: 'SMALL' },
-  { label: '중형견', value: 'MEDIUM' },
-  { label: '대형견', value: 'LARGE' },
-];
-
 const DEFAULT_FILTERS = {
   category: '',
+  petId: '',
   indoorAllowedOnly: false,
   petWeight: '',
   petSize: '',
@@ -52,12 +58,13 @@ function SearchIcon() {
 function PlaceSearchPanel({
   bounds,
   initialQuery,
+  initialView = 'search',
   initialFilters = DEFAULT_FILTERS,
   onClose,
   onFiltersApplied,
   onSelectPlace,
 }) {
-  const [view, setView] = useState('search');
+  const [view, setView] = useState(initialView);
   const [query, setQuery] = useState(initialQuery);
   const [results, setResults] = useState([]);
   const [recentSearches, setRecentSearches] = useState(readRecentSearches);
@@ -69,6 +76,33 @@ function PlaceSearchPanel({
   const [hasSearched, setHasSearched] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [myPets, setMyPets] = useState([]);
+  const [petLoadState, setPetLoadState] = useState('idle');
+  const hasLoadedPetsRef = useRef(false);
+
+  // 필터 화면을 처음 열었을 때만 로그인 사용자의 반려동물 목록을 가져옵니다.
+  useEffect(() => {
+    if (view !== 'filters' || hasLoadedPetsRef.current) return undefined;
+    hasLoadedPetsRef.current = true;
+
+    if (!hasStoredSession()) {
+      setPetLoadState('guest');
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    setPetLoadState('loading');
+    getMyPets({ signal: controller.signal })
+      .then((pets) => {
+        setMyPets(Array.isArray(pets) ? pets : []);
+        setPetLoadState('success');
+      })
+      .catch((error) => {
+        if (error.code !== 'ERR_CANCELED') setPetLoadState('error');
+      });
+
+    return () => controller.abort();
+  }, [view]);
 
   const activeFilterCount = Object.entries(filters).filter(
     ([key, value]) => key !== 'category' ? Boolean(value) : value !== '',
@@ -117,7 +151,14 @@ function PlaceSearchPanel({
     setIsLoading(true);
     setErrorMessage('');
     try {
-      const response = await getNearbyPlaces({ bounds, ...filters });
+      const response = filters.petId
+        ? await getNearbyPlacesForPet({
+            bounds,
+            petId: filters.petId,
+            category: filters.category,
+            indoorAllowedOnly: filters.indoorAllowedOnly,
+          })
+        : await getNearbyPlaces({ bounds, ...filters });
       const nearbyPlaces = Array.isArray(response) ? response : [];
       // 백엔드 nearby API에는 검색어 조건이 없어서, 받아온 현재 지도 결과에서 이름을 한 번 더 거릅니다.
       const keyword = query.trim().toLocaleLowerCase();
@@ -127,13 +168,13 @@ function PlaceSearchPanel({
 
       setResults(visiblePlaces);
       setHasSearched(true);
-      setView('search');
-      // 부모 지도에도 같은 필터 결과를 전달해 마커와 목록이 서로 다르지 않게 합니다.
+      // 부모 지도에 필터 결과를 전달한 다음 검색 화면을 닫아 마커를 바로 보여줍니다.
       onFiltersApplied?.({
         places: visiblePlaces,
         filters: { ...filters },
         keyword,
       });
+      onClose();
     } catch {
       setErrorMessage('필터 결과를 가져오지 못했어요.');
     } finally {
@@ -147,13 +188,28 @@ function PlaceSearchPanel({
     localStorage.setItem(RECENT_SEARCH_KEY, JSON.stringify(next));
   };
 
+  /** 지도에서 바로 필터를 열었다면 지도로, 검색 중 열었다면 검색 결과로 돌아갑니다. */
+  const handleFilterBack = () => {
+    if (initialView === 'filters') {
+      onClose();
+      return;
+    }
+    setView('search');
+  };
+
   if (view === 'filters') {
     return (
       <section className="place-search-panel" aria-label="장소 검색 필터">
         <header className="place-filter-header">
-          <button type="button" onClick={() => setView('search')}>취소</button>
+          <button type="button" onClick={handleFilterBack}>취소</button>
           <strong>필터</strong>
-          <span />
+          <button
+            className="place-filter-reset"
+            type="button"
+            onClick={() => setFilters(DEFAULT_FILTERS)}
+          >
+            초기화
+          </button>
         </header>
 
         <div className="place-filter-body">
@@ -176,42 +232,111 @@ function PlaceSearchPanel({
             </div>
           </fieldset>
 
-          <fieldset>
-            <legend>반려동물 크기</legend>
+          <fieldset className="place-pet-filter">
+            <legend>맞춤 기준</legend>
             <div className="place-filter-chips">
-              {SIZE_OPTIONS.map((option) => (
+              <button
+                className={!filters.petId ? 'active' : ''}
+                type="button"
+                onClick={() => setFilters((current) => ({ ...current, petId: '' }))}
+              >
+                직접 설정
+              </button>
+              {myPets.map((pet) => (
                 <button
-                  key={option.value}
-                  className={filters.petSize === option.value ? 'active' : ''}
+                  key={pet.petId}
+                  className={String(filters.petId) === String(pet.petId) ? 'active' : ''}
                   type="button"
                   onClick={() => setFilters((current) => ({
                     ...current,
-                    petSize: current.petSize === option.value ? '' : option.value,
+                    petId: pet.petId,
+                    petWeight: '',
+                    petSize: '',
+                    isDangerous: false,
                   }))}
                 >
-                  {option.label}
+                  {pet.name} 기준
                 </button>
               ))}
             </div>
+            {petLoadState === 'loading' && <small>내 반려동물을 불러오는 중…</small>}
+            {petLoadState === 'guest' && <small>로그인하면 등록한 반려동물 기준으로 자동 검색할 수 있어요.</small>}
+            {petLoadState === 'success' && myPets.length === 0 && (
+              <small>등록된 반려동물이 없어 직접 설정만 사용할 수 있어요.</small>
+            )}
+            {petLoadState === 'error' && <small>반려동물 목록을 불러오지 못했어요.</small>}
           </fieldset>
 
-          <label className="place-weight-field">
-            <span>반려동물 몸무게</span>
-            <span>
-              <input
-                type="number"
-                min="0"
-                step="0.1"
-                value={filters.petWeight}
-                onChange={(event) => setFilters((current) => ({
-                  ...current,
-                  petWeight: event.target.value,
-                }))}
-                placeholder="0"
-              />
-              kg
-            </span>
-          </label>
+          {filters.petId ? (
+            <p className="place-pet-auto-description">
+              선택한 반려동물의 몸무게·크기·견종 조건을 자동으로 적용합니다.
+            </p>
+          ) : (
+            <>
+              <fieldset>
+                <legend>반려동물 크기</legend>
+                <div className="place-filter-chips">
+                  {PET_SIZE_OPTIONS.map((option) => (
+                    <button
+                      key={option.value}
+                      className={filters.petSize === option.value ? 'active' : ''}
+                      type="button"
+                      onClick={() => setFilters((current) => ({
+                        ...current,
+                        petWeight: '',
+                        petSize: current.petSize === option.value ? '' : option.value,
+                      }))}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+
+              <label className="place-weight-field">
+                <span>반려동물 몸무게</span>
+                <span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    value={filters.petWeight}
+                    onChange={(event) => {
+                      const petWeight = event.target.value;
+                      setFilters((current) => ({
+                        ...current,
+                        petWeight,
+                        // 무게 제한 또는 크기 제한만 저장된 장소도 찾도록 두 조건을 함께 보냅니다.
+                        petSize: getPetSizeByWeight(petWeight),
+                      }));
+                    }}
+                    placeholder="제한 없음"
+                  />
+                  kg
+                </span>
+              </label>
+              {filters.petWeight && (
+                <p className="place-weight-result">
+                  적용 기준: {getPetSizeLabel(filters.petSize)}
+                </p>
+              )}
+
+              <label className="place-filter-switch">
+                <span>
+                  <strong>맹견 동반</strong>
+                  <small>맹견 출입이 거절되지 않는 장소만 보기</small>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={filters.isDangerous}
+                  onChange={(event) => setFilters((current) => ({
+                    ...current,
+                    isDangerous: event.target.checked,
+                  }))}
+                />
+              </label>
+            </>
+          )}
 
           <label className="place-filter-switch">
             <span>
@@ -224,21 +349,6 @@ function PlaceSearchPanel({
               onChange={(event) => setFilters((current) => ({
                 ...current,
                 indoorAllowedOnly: event.target.checked,
-              }))}
-            />
-          </label>
-
-          <label className="place-filter-switch">
-            <span>
-              <strong>맹견 동반</strong>
-              <small>맹견 출입이 거절되지 않는 장소만 보기</small>
-            </span>
-            <input
-              type="checkbox"
-              checked={filters.isDangerous}
-              onChange={(event) => setFilters((current) => ({
-                ...current,
-                isDangerous: event.target.checked,
               }))}
             />
           </label>
@@ -273,16 +383,7 @@ function PlaceSearchPanel({
             onChange={(event) => setQuery(event.target.value)}
             placeholder="장소 이름 검색"
           />
-          {query && (
-              <button
-                  className="place-search-clear"
-                  type="button"
-                  onClick={() => setQuery('')}
-                  aria-label="검색어 지우기"
-              >
-                ×
-              </button>
-          )}
+          
         </form>
       </header>
 

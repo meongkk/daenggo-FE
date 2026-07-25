@@ -155,6 +155,24 @@
   color: #e88018;
 }
 
+.map-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.map-filter-count {
+  display: inline-grid;
+  width: 18px;
+  height: 18px;
+  margin-left: 6px;
+  place-items: center;
+  border-radius: 50%;
+  background: #ed922a;
+  color: #fff;
+  font-size: 10px;
+}
+
 .map-category-chip:disabled,
 .map-search-submit:disabled,
 .map-favorite-filter:disabled {

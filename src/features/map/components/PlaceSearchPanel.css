@@ -40,18 +40,6 @@
   stroke: #2d3037;
   stroke-width: 2.2;
 }
-.place-search-clear {
-  width: 22px;
-  height: 22px;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: #c5c8d0;
-  color: #fff;
-  font-size: 16px;
-  line-height: 22px;
-  cursor: pointer;
-}
 
 .place-search-header input {
   min-width: 0;
@@ -184,6 +172,11 @@
   font-size: 13px;
 }
 
+.place-filter-header .place-filter-reset {
+  justify-self: end;
+  color: #858a95;
+}
+
 .place-filter-body {
   flex: 1;
   overflow-y: auto;
@@ -201,6 +194,24 @@
   margin-bottom: 13px;
   font-size: 14px;
   font-weight: 700;
+}
+
+.place-pet-filter small {
+  display: block;
+  margin-top: 11px;
+  color: #858a95;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.place-pet-auto-description {
+  margin: 0;
+  padding: 17px 14px;
+  border-bottom: 1px solid #eceef1;
+  background: #fff8ef;
+  color: #b96b19;
+  font-size: 12px;
+  line-height: 1.55;
 }
 
 .place-filter-chips {
@@ -239,12 +250,20 @@
 }
 
 .place-weight-field input {
-  width: 58px;
+  width: 82px;
   height: 34px;
   margin-right: 6px;
   border: 1px solid #e1e3e8;
   border-radius: 8px;
   text-align: center;
+}
+
+.place-weight-result {
+  margin: -1px 0 0;
+  padding: 10px 0 14px;
+  border-bottom: 1px solid #eceef1;
+  color: #e17f1a;
+  font-size: 11px;
 }
 
 .place-filter-switch > span {

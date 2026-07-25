@@ -9,6 +9,10 @@ import {
   getMyPet,
   updatePet,
 } from '../api/petApi';
+import {
+  getPetSizeByWeight,
+  getPetSizeLabel,
+} from '../utils/petSize';
 import '../../mypage/pages/MyPage.css';
 
 const EMPTY_FORM = {
@@ -45,7 +49,7 @@ export default function PetFormPage() {
           breedId: pet.breedId || '',
           breedText: pet.breedText || pet.breedName || '',
           weight: pet.weight ?? '',
-          size: pet.size || '',
+          size: getPetSizeByWeight(pet.weight),
           profileImageUrl: pet.profileImageUrl || '',
           registrationNumber: pet.registrationNumber || '',
           vaccine: pet.vaccine || '',
@@ -74,6 +78,7 @@ export default function PetFormPage() {
       ...current,
       [field]: value,
       ...(field === 'breedText' ? { breedId: '' } : {}),
+      ...(field === 'weight' ? { size: getPetSizeByWeight(value) } : {}),
     }));
     setError('');
   };
@@ -92,7 +97,7 @@ export default function PetFormPage() {
       breedId: form.breedId ? Number(form.breedId) : null,
       breedText: form.breedId ? null : breedText || null,
       weight: Number(form.weight),
-      size: form.size.trim(),
+      size: getPetSizeByWeight(form.weight),
       profileImageUrl: form.profileImageUrl.trim(),
       registrationNumber: form.registrationNumber.trim(),
       vaccine: form.vaccine.trim(),
@@ -150,10 +155,13 @@ export default function PetFormPage() {
               <span>몸무게(kg) *</span>
               <input id="pet-weight" type="number" min="0.01" max="999.99" step="0.01" value={form.weight} onChange={updateField('weight')} disabled={isSubmitting} />
             </label>
-            <label className="auth-field" htmlFor="pet-size">
-              <span>크기 *</span>
-              <input id="pet-size" value={form.size} onChange={updateField('size')} maxLength={20} placeholder="예: 소형" disabled={isSubmitting} />
-            </label>
+            <div className="auth-field">
+              <span>크기 기준</span>
+              <div className="pet-size-derived">
+                <strong>{getPetSizeLabel(form.size) || '몸무게를 입력해 주세요'}</strong>
+                <small>몸무게를 입력하면 크기가 자동으로 결정됩니다.</small>
+              </div>
+            </div>
             <label className="auth-field" htmlFor="pet-registration">
               <span>동물등록번호</span>
               <input id="pet-registration" value={form.registrationNumber} onChange={updateField('registrationNumber')} maxLength={50} disabled={isSubmitting} />
