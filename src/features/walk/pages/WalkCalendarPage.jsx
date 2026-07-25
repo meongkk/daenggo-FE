@@ -212,7 +212,7 @@ export default function WalkCalendarPage() {
                     ? '반려동물 확인 중...'
                     : myPets.length === 0
                         ? '반려동물 등록 후 이용 가능'
-                        : '산책 등록하기'}
+                        : '산책하기'}
                 </button>
             </div>
 
