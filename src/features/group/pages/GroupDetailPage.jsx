@@ -5,22 +5,39 @@ import AppIcon from '../../../components/ui/AppIcon';
 import { getApiErrorMessage } from '../../../lib/apiError';
 import MyPageHeader from '../../mypage/components/MyPageHeader';
 import ProfileAvatar from '../../mypage/components/ProfileAvatar';
+import useProfileImageSource from '../../profile/hooks/useProfileImageSource';
 import { searchUsers } from '../../user/api/userApi';
 import {
   addGroupMember,
   getGroupDetail,
   getGroupMembers,
+  getGroupPets,
   kickMember,
   leaveGroup,
   transferOwnership,
 } from '../api/groupApi';
 import './Group.css';
 
+function GroupPetImage({ imageUrl, name }) {
+  const imageSource = useProfileImageSource(imageUrl);
+
+  return imageSource ? (
+    <img className="group-pet__image" src={imageSource} alt={`${name} 프로필`} />
+  ) : (
+    <div className="group-pet__image group-pet__image--empty" aria-hidden="true">
+      <AppIcon name="image" size={23} />
+    </div>
+  );
+}
+
 export default function GroupDetailPage() {
   const navigate = useNavigate();
   const { groupId } = useParams();
   const [group, setGroup] = useState(null);
   const [members, setMembers] = useState([]);
+  const [groupPets, setGroupPets] = useState([]);
+  const [isGroupPetsLoading, setIsGroupPetsLoading] = useState(true);
+  const [groupPetsError, setGroupPetsError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [actionId, setActionId] = useState('');
   const [error, setError] = useState('');
@@ -40,6 +57,27 @@ export default function GroupDetailPage() {
     ]);
     setGroup(groupDetail);
     setMembers(groupMembers);
+
+    try {
+      setIsGroupPetsLoading(true);
+      setGroupPetsError('');
+      const pets = await getGroupPets(groupId, { signal });
+      setGroupPets(pets);
+    } catch (requestError) {
+      if (requestError.code === 'ERR_CANCELED') {
+        throw requestError;
+      }
+
+      setGroupPets([]);
+      setGroupPetsError(
+        requestError.response?.data?.detail
+          ?? getApiErrorMessage(requestError, '그룹 반려동물을 불러오지 못했습니다.'),
+      );
+    } finally {
+      if (!signal?.aborted) {
+        setIsGroupPetsLoading(false);
+      }
+    }
   }, [groupId]);
 
   useEffect(() => {
@@ -278,6 +316,39 @@ export default function GroupDetailPage() {
                   )}
                 </article>
               ))}
+            </section>
+
+            <section className="group-pets">
+              <div className="group-pets__heading">
+                <h3>그룹 반려동물</h3>
+                <span>{groupPets.length}마리</span>
+              </div>
+              {isGroupPetsLoading ? (
+                <p className="group-pets__empty">그룹 반려동물을 불러오는 중...</p>
+              ) : groupPetsError ? (
+                <p className="group-pets__empty group-pets__empty--error" role="alert">
+                  {groupPetsError}
+                </p>
+              ) : groupPets.length === 0 ? (
+                <p className="group-pets__empty">
+                  그룹원이 등록한 반려동물이 없습니다.
+                </p>
+              ) : (
+                <div className="group-pets__list">
+                  {groupPets.map((pet) => (
+                    <article className="group-pet" key={pet.petId}>
+                      <GroupPetImage imageUrl={pet.profileImageUrl} name={pet.name} />
+                      <div className="group-pet__info">
+                        <strong>{pet.name}</strong>
+                        <span>소유자: {pet.ownerNickname}</span>
+                      </div>
+                      {pet.primary && (
+                        <span className="group-pet__primary">대표</span>
+                      )}
+                    </article>
+                  ))}
+                </div>
+              )}
             </section>
 
             <section className="group-danger-zone">
