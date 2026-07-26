@@ -101,7 +101,6 @@ export default function MyPage() {
         {location.state?.message && <p className="mypage-notice">{location.state.message}</p>}
         <section className="profile-summary" aria-label="프로필">
           <ProfileAvatar
-            editable
             imageUrl={profile?.profileImageUrl}
             nickname={profile?.nickname}
           />
