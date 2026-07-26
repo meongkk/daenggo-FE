@@ -9,6 +9,7 @@ import useProfileImageSource from '../../profile/hooks/useProfileImageSource';
 import { searchUsers } from '../../user/api/userApi';
 import {
   addGroupMember,
+  deleteGroup,
   getGroupDetail,
   getGroupMembers,
   getGroupPets,
@@ -237,6 +238,28 @@ export default function GroupDetailPage() {
     }
   };
 
+  const handleDeleteGroup = async () => {
+    if (!window.confirm(`'${group.name}' 그룹을 삭제하시겠어요?\n삭제한 그룹은 복구할 수 없습니다.`)) {
+      return;
+    }
+
+    try {
+      setActionId('delete');
+      setError('');
+      await deleteGroup(groupId);
+      navigate('/mypage/groups', {
+        replace: true,
+        state: { message: '그룹이 삭제되었습니다.' },
+      });
+    } catch (requestError) {
+      setError(
+        requestError.response?.data?.detail
+          ?? getApiErrorMessage(requestError, '그룹을 삭제하지 못했습니다.'),
+      );
+      setActionId('');
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="mobile-screen mypage-screen mypage-subpage">
@@ -357,10 +380,13 @@ export default function GroupDetailPage() {
                   {actionId === 'leave' ? '탈퇴 중...' : '그룹 탈퇴'}
                 </button>
               ) : (
-                <>
-                  <button type="button" disabled>그룹 삭제</button>
-                  <small>백엔드 삭제 기능 안정화 후 사용할 수 있습니다.</small>
-                </>
+                <button
+                  type="button"
+                  onClick={handleDeleteGroup}
+                  disabled={Boolean(actionId)}
+                >
+                  {actionId === 'delete' ? '삭제 중...' : '그룹 삭제'}
+                </button>
               )}
             </section>
           </>
