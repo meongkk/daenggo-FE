@@ -67,6 +67,8 @@ export default function WalkTrackingPage() {
     const [myPets, setMyPets] = useState([]);
     const [selectedPetIds, setSelectedPetIds] = useState([]);
     const [petSelectorOpen, setPetSelectorOpen] = useState(false);
+    const pausedTimeRef = useRef(0);
+    const pauseStartedRef = useRef(null);
 
     
 
@@ -78,6 +80,7 @@ export default function WalkTrackingPage() {
     const gpsBufferRef = useRef([]);
     const pendingGpsRequestRef = useRef(Promise.resolve());
     const photoPreviewRef = useRef('');
+    const hasStartedTimerRef = useRef(false);
 
     function stopDeviceTracking() {
         if (timerIdRef.current) window.clearInterval(timerIdRef.current);
@@ -88,6 +91,37 @@ export default function WalkTrackingPage() {
         gpsWatchIdRef.current = null;
     }
 
+    function pauseWalkTimer() {
+        if (timerIdRef.current) {
+            window.clearInterval(timerIdRef.current);
+            timerIdRef.current = null;
+        }
+
+        pauseStartedRef.current = Date.now();
+    }
+    
+    
+    function resumeWalkTimer() {
+        if (timerIdRef.current) return;
+    
+        if (pauseStartedRef.current) {
+            pausedTimeRef.current += Date.now() - pauseStartedRef.current;
+            pauseStartedRef.current = null;
+        }
+    
+        timerIdRef.current = window.setInterval(() => {
+            setElapsedSeconds(
+                Math.floor(
+                    (
+                        Date.now()
+                        - walkStartTimeRef.current
+                        - pausedTimeRef.current
+                    ) / 1000
+                )
+            );
+        }, 1000);
+    }
+
     // 산책 시작: 타이머는 여기서 딱 한 번만 시작한다.
     // (watchPosition 콜백 안에 두면 GPS 좌표를 받을 때마다 타이머가 새로 생겨 겹치는 문제가 있었음)
     useEffect(() => {
@@ -95,12 +129,12 @@ export default function WalkTrackingPage() {
 
         setMessage('산책을 기록하고 있어요.');
 
-        walkStartTimeRef.current = Date.now();
-        timerIdRef.current = window.setInterval(() => {
-            setElapsedSeconds(
-                Math.floor((Date.now() - walkStartTimeRef.current) / 1000)
-            );
-        }, 1000);
+        // walkStartTimeRef.current = Date.now();
+        // timerIdRef.current = window.setInterval(() => {
+        //     setElapsedSeconds(
+        //         Math.floor((Date.now() - walkStartTimeRef.current) / 1000)
+        //     );
+        // }, 1000);
 
         beginDeviceTracking(Number(walkId));
 
@@ -179,6 +213,15 @@ export default function WalkTrackingPage() {
 
         gpsWatchIdRef.current = navigator.geolocation.watchPosition(
             (position) => {
+
+                if (!hasStartedTimerRef.current) {
+                    hasStartedTimerRef.current = true;
+                
+                    walkStartTimeRef.current = Date.now();
+                
+                    resumeWalkTimer();   // 이미 만들어둔 함수 사용
+                }
+                
                 setIsLocationLoading(false);
 
                 console.log('GPS 들어옴', position.coords.latitude, position.coords.longitude);
@@ -249,11 +292,12 @@ export default function WalkTrackingPage() {
 
     function handleCompleteWalk() {
         if (!walkId) return;
-        stopDeviceTracking();
 
-        setPhase('completing');
+        pauseWalkTimer();
+
+        // setPhase('completing');
         setErrorMessage('');
-
+    
         setWalkTitle(
             `${new Date().toLocaleDateString('ko-KR')} 산책`
         );
@@ -296,6 +340,8 @@ export default function WalkTrackingPage() {
             console.log(error);
 
             setPhase('active');
+
+            resumeWalkTimer();
 
             setErrorMessage(
                 error.response?.data?.message
@@ -372,8 +418,21 @@ export default function WalkTrackingPage() {
             {showCompleteModal && (
                 <div className="walk-modal-overlay">
                     <div className="walk-complete-modal">
+
+                        <button
+                            className="walk-close-button"
+                            onClick={() => {
+                                setShowCompleteModal(false);
+                                setPhase('active');
+                                resumeWalkTimer();
+                            }}
+                        >
+                            ✕
+                        </button>
+
                         <h2>산책 기록 저장</h2>
 
+                        
                         <input
                             value={walkTitle}
                             onChange={(e) => setWalkTitle(e.target.value)}
@@ -387,10 +446,58 @@ export default function WalkTrackingPage() {
                         />
 
                         <h3>함께 산책한 반려동물</h3>
+                        <div className="pet-selector-wrapper">
 
                         <div
                             className="pet-selector-box"
-                            onClick={() => setPetSelectorOpen(!petSelectorOpen)}
+                            onClick={() => setPetSelectorOpen(prev => !prev)}
+                        >
+                            <span>
+                            {
+                                selectedPetIds.length === 0
+                                    ? "반려동물 선택"
+                                    : myPets
+                                        .filter(pet => selectedPetIds.includes(pet.petId))
+                                        .map(pet => pet.name)
+                                        .join(", ")
+                            }
+                        </span>
+
+                        <span className="pet-selector-arrow">
+                            ⌄
+                        </span>
+                        </div>
+
+
+                        {petSelectorOpen && (
+                            <div className="pet-selector-list">
+
+                                {myPets.map((pet)=>(
+                                    <label 
+                                        key={pet.petId}
+                                        className="pet-selector-item"
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedPetIds.includes(pet.petId)}
+                                            onChange={() => togglePet(pet.petId)}
+                                        />
+
+                                        {pet.name}
+
+                                    </label>
+                                ))}
+
+                            </div>
+                        )}
+
+                    </div>
+{/* 
+                        <div className="pet-selector-wrapper">
+
+                        <div
+                            className="pet-selector-box"
+                            onClick={() => setPetSelectorOpen(prev => !prev)}
                         >
                             {
                                 selectedPetIds.length === 0
@@ -400,30 +507,39 @@ export default function WalkTrackingPage() {
                                         .map(pet => pet.name)
                                         .join(", ")
                             }
-                            ▼
                         </div>
+
 
                         {petSelectorOpen && (
                             <div className="pet-selector-list">
+
                                 {myPets.map((pet) => (
                                     <label
                                         key={pet.petId}
-                                        className="pet-item"
+                                        className="pet-selector-item"
                                     >
                                         <input
                                             type="checkbox"
                                             checked={selectedPetIds.includes(pet.petId)}
                                             onChange={() => togglePet(pet.petId)}
                                         />
-                                        {pet.name}
+
+                                        <span>
+                                            {pet.name}
+                                        </span>
                                     </label>
                                 ))}
+
                             </div>
                         )}
 
+                        </div> */}
+
                         <button
                             className="walk-primary-button"
-                            onClick={saveCompletedWalk}
+                            onClick={() => {
+                                saveCompletedWalk();
+                            }}
                         >
                             저장하기
                         </button>

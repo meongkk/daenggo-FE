@@ -54,6 +54,7 @@ export async function getWalkCalendar(year, month) {
     const response = await apiClient.get(`${WALK_API_URL}/calendar`, {
         params: { year, month },
     });
+
     return response.data;
 }
 
