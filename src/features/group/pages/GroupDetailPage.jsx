@@ -1,27 +1,54 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import BottomNavigation from '../../../components/BottomNavigation';
+import AppIcon from '../../../components/ui/AppIcon';
 import { getApiErrorMessage } from '../../../lib/apiError';
 import MyPageHeader from '../../mypage/components/MyPageHeader';
 import ProfileAvatar from '../../mypage/components/ProfileAvatar';
+import useProfileImageSource from '../../profile/hooks/useProfileImageSource';
+import { searchUsers } from '../../user/api/userApi';
 import {
+  addGroupMember,
   getGroupDetail,
   getGroupMembers,
+  getGroupPets,
   kickMember,
   leaveGroup,
   transferOwnership,
 } from '../api/groupApi';
 import './Group.css';
 
+function GroupPetImage({ imageUrl, name }) {
+  const imageSource = useProfileImageSource(imageUrl);
+
+  return imageSource ? (
+    <img className="group-pet__image" src={imageSource} alt={`${name} 프로필`} />
+  ) : (
+    <div className="group-pet__image group-pet__image--empty" aria-hidden="true">
+      <AppIcon name="image" size={23} />
+    </div>
+  );
+}
+
 export default function GroupDetailPage() {
   const navigate = useNavigate();
   const { groupId } = useParams();
   const [group, setGroup] = useState(null);
   const [members, setMembers] = useState([]);
+  const [groupPets, setGroupPets] = useState([]);
+  const [isGroupPetsLoading, setIsGroupPetsLoading] = useState(true);
+  const [groupPetsError, setGroupPetsError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [actionId, setActionId] = useState('');
   const [error, setError] = useState('');
   const [requestKey, setRequestKey] = useState(0);
+  const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
+  const [searchError, setSearchError] = useState('');
+  const [addingUserId, setAddingUserId] = useState(null);
 
   const loadGroup = useCallback(async (signal) => {
     const [groupDetail, groupMembers] = await Promise.all([
@@ -30,6 +57,27 @@ export default function GroupDetailPage() {
     ]);
     setGroup(groupDetail);
     setMembers(groupMembers);
+
+    try {
+      setIsGroupPetsLoading(true);
+      setGroupPetsError('');
+      const pets = await getGroupPets(groupId, { signal });
+      setGroupPets(pets);
+    } catch (requestError) {
+      if (requestError.code === 'ERR_CANCELED') {
+        throw requestError;
+      }
+
+      setGroupPets([]);
+      setGroupPetsError(
+        requestError.response?.data?.detail
+          ?? getApiErrorMessage(requestError, '그룹 반려동물을 불러오지 못했습니다.'),
+      );
+    } finally {
+      if (!signal?.aborted) {
+        setIsGroupPetsLoading(false);
+      }
+    }
   }, [groupId]);
 
   useEffect(() => {
@@ -51,6 +99,100 @@ export default function GroupDetailPage() {
 
     return () => controller.abort();
   }, [loadGroup, requestKey]);
+
+  useEffect(() => {
+    if (!isAddMemberOpen) {
+      return undefined;
+    }
+
+    const nickname = searchQuery.trim();
+    if (!nickname) {
+      setSearchResults([]);
+      setHasSearched(false);
+      setSearchError('');
+      setIsSearching(false);
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    const timerId = window.setTimeout(() => {
+      setIsSearching(true);
+      setSearchError('');
+
+      searchUsers(nickname, { signal: controller.signal })
+        .then((users) => {
+          setSearchResults(users);
+          setHasSearched(true);
+        })
+        .catch((requestError) => {
+          if (requestError.code !== 'ERR_CANCELED') {
+            setSearchResults([]);
+            setHasSearched(true);
+            setSearchError(
+              requestError.response?.data?.detail
+                ?? getApiErrorMessage(requestError, '사용자 검색에 실패했습니다.'),
+            );
+          }
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) {
+            setIsSearching(false);
+          }
+        });
+    }, 400);
+
+    return () => {
+      window.clearTimeout(timerId);
+      controller.abort();
+    };
+  }, [isAddMemberOpen, searchQuery]);
+
+  const openAddMemberModal = () => {
+    setSearchQuery('');
+    setSearchResults([]);
+    setHasSearched(false);
+    setSearchError('');
+    setAddingUserId(null);
+    setIsAddMemberOpen(true);
+  };
+
+  const closeAddMemberModal = () => {
+    if (addingUserId !== null) {
+      return;
+    }
+    setIsAddMemberOpen(false);
+  };
+
+  const handleAddMember = async (user) => {
+    if (!window.confirm(`${user.nickname}님을 그룹원으로 추가하시겠어요?`)) {
+      return;
+    }
+
+    try {
+      setAddingUserId(user.userId);
+      setSearchError('');
+      await addGroupMember(groupId, user.userId);
+      await loadGroup();
+      setIsAddMemberOpen(false);
+    } catch (requestError) {
+      const status = requestError.response?.status;
+      const statusMessage = {
+        400: '본인을 그룹원으로 추가할 수 없습니다.',
+        401: '다시 로그인해 주세요.',
+        403: '그룹장만 그룹원을 추가할 수 있습니다.',
+        404: '해당 회원을 찾을 수 없습니다.',
+        409: '이미 참여 중인 그룹원입니다.',
+      }[status];
+
+      setSearchError(
+        requestError.response?.data?.detail
+          ?? statusMessage
+          ?? '그룹원 추가에 실패했습니다.',
+      );
+    } finally {
+      setAddingUserId(null);
+    }
+  };
 
   const runMemberAction = async (name, member, action) => {
     const confirmation = name === 'transfer'
@@ -129,7 +271,15 @@ export default function GroupDetailPage() {
             </section>
 
             <section className="group-members">
-              <h3>그룹원</h3>
+              <div className="group-members__heading">
+                <h3>그룹원</h3>
+                {group.myRole === 'OWNER' && (
+                  <button type="button" onClick={openAddMemberModal}>
+                    <AppIcon name="plus" size={15} />
+                    그룹원 추가
+                  </button>
+                )}
+              </div>
               {members.map((member) => (
                 <article key={member.memberId} className="group-member">
                   <ProfileAvatar imageUrl={member.profileImageUrl} nickname={member.nickname} size="small" />
@@ -168,6 +318,39 @@ export default function GroupDetailPage() {
               ))}
             </section>
 
+            <section className="group-pets">
+              <div className="group-pets__heading">
+                <h3>그룹 반려동물</h3>
+                <span>{groupPets.length}마리</span>
+              </div>
+              {isGroupPetsLoading ? (
+                <p className="group-pets__empty">그룹 반려동물을 불러오는 중...</p>
+              ) : groupPetsError ? (
+                <p className="group-pets__empty group-pets__empty--error" role="alert">
+                  {groupPetsError}
+                </p>
+              ) : groupPets.length === 0 ? (
+                <p className="group-pets__empty">
+                  그룹원이 등록한 반려동물이 없습니다.
+                </p>
+              ) : (
+                <div className="group-pets__list">
+                  {groupPets.map((pet) => (
+                    <article className="group-pet" key={pet.petId}>
+                      <GroupPetImage imageUrl={pet.profileImageUrl} name={pet.name} />
+                      <div className="group-pet__info">
+                        <strong>{pet.name}</strong>
+                        <span>소유자: {pet.ownerNickname}</span>
+                      </div>
+                      {pet.primary && (
+                        <span className="group-pet__primary">대표</span>
+                      )}
+                    </article>
+                  ))}
+                </div>
+              )}
+            </section>
+
             <section className="group-danger-zone">
               {group.myRole === 'MEMBER' ? (
                 <button type="button" onClick={handleLeave} disabled={Boolean(actionId)}>
@@ -184,6 +367,94 @@ export default function GroupDetailPage() {
         )}
       </main>
       <BottomNavigation />
+
+      {isAddMemberOpen && (
+        <div
+          className="group-member-modal-overlay"
+          role="presentation"
+          onMouseDown={closeAddMemberModal}
+        >
+          <section
+            className="group-member-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="group-member-modal-title"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <header>
+              <div>
+                <h2 id="group-member-modal-title">그룹원 추가</h2>
+                <p>추가할 사용자의 닉네임을 검색해 주세요.</p>
+              </div>
+              <button
+                type="button"
+                className="group-member-modal__close"
+                onClick={closeAddMemberModal}
+                disabled={addingUserId !== null}
+                aria-label="그룹원 추가 창 닫기"
+              >
+                ×
+              </button>
+            </header>
+
+            <label className="group-member-search" htmlFor="group-member-search">
+              <span className="sr-only">사용자 닉네임</span>
+              <input
+                id="group-member-search"
+                type="search"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="닉네임을 입력해 주세요"
+                maxLength={50}
+                disabled={addingUserId !== null}
+                autoFocus
+              />
+            </label>
+
+            <div className="group-member-search__results">
+              {!searchQuery.trim() && (
+                <p className="group-member-search__guide">
+                  닉네임 일부만 입력해도 검색할 수 있습니다.
+                </p>
+              )}
+              {isSearching && <p className="group-member-search__guide">검색 중...</p>}
+              {searchError && (
+                <p className="group-member-search__error" role="alert">{searchError}</p>
+              )}
+              {!isSearching && !searchError && hasSearched && searchResults.length === 0 && (
+                <p className="group-member-search__guide">검색 결과가 없습니다.</p>
+              )}
+              {!searchError && searchResults.map((user) => {
+                const isExistingMember = members.some(
+                  (member) => Number(member.userId) === Number(user.userId),
+                );
+
+                return (
+                  <article className="group-member-search__item" key={user.userId}>
+                    <ProfileAvatar
+                      imageUrl={user.profileImageUrl}
+                      nickname={user.nickname}
+                      size="small"
+                    />
+                    <strong>{user.nickname}</strong>
+                    <button
+                      type="button"
+                      onClick={() => handleAddMember(user)}
+                      disabled={isExistingMember || addingUserId !== null}
+                    >
+                      {isExistingMember
+                        ? '참여 중'
+                        : addingUserId === user.userId
+                          ? '추가 중...'
+                          : '추가'}
+                    </button>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 }
