@@ -201,41 +201,28 @@
 
 .social-login {
   display: flex;
-  gap: 12px;
   justify-content: center;
   margin-top: 14px;
 }
 
-.social-login__button {
-  display: grid;
-  width: 42px;
-  height: 42px;
+.social-login__kakao-button {
+  width: min(100%, 300px);
   padding: 0;
-  color: #fff;
-  font-weight: 900;
   cursor: pointer;
-  border-radius: 50%;
-  place-items: center;
+  background: transparent;
+  border-radius: 6px;
+  overflow: hidden;
 }
 
-.social-login__button--google {
-  background: #ee3f49;
+.social-login__kakao-button:focus-visible {
+  outline: 3px solid rgb(240 148 50 / 35%);
+  outline-offset: 3px;
 }
 
-.social-login__button--apple {
-  font-size: 12px;
-  background: #171719;
-}
-
-.social-login__button--kakao {
-  background: #f8cd23;
-}
-
-.social-login__button--kakao span {
-  width: 20px;
-  height: 15px;
-  background: #4b371d;
-  border-radius: 50%;
+.social-login__kakao-button img {
+  display: block;
+  width: 100%;
+  height: auto;
 }
 
 .oauth-status-screen {

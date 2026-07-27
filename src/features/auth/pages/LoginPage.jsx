@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import kakaoLoginWideImage from '../../../assets/kakao_login_medium_wide.png';
 import { getApiErrorMessage } from '../../../lib/apiError';
 import PuppyIllustration from '../components/PuppyIllustration';
 import PasswordField from '../components/PasswordField';
@@ -122,17 +123,15 @@ export default function LoginPage() {
           <button type="button" onClick={() => navigate('/signup')}>회원가입</button>
         </p>
 
-        <div className="auth-divider"><span>다른 로그인</span></div>
+        <div className="auth-divider"><span>간편 로그인</span></div>
         <div className="social-login" aria-label="소셜 로그인">
-          <button type="button" className="social-login__button social-login__button--google" aria-label="Google로 로그인">G</button>
-          <button type="button" className="social-login__button social-login__button--apple" aria-label="Apple로 로그인">●</button>
           <button
             type="button"
-            className="social-login__button social-login__button--kakao"
+            className="social-login__kakao-button"
             aria-label="카카오로 로그인"
             onClick={handleKakaoLogin}
           >
-            <span />
+            <img src={kakaoLoginWideImage} alt="" />
           </button>
         </div>
       </main>
