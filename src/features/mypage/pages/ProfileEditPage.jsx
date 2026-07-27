@@ -186,9 +186,22 @@ export default function ProfileEditPage() {
             <span>닉네임</span>
             <input id="edit-nickname" value={profileForm.nickname} onChange={updateProfileField('nickname')} maxLength={50} disabled={isLoading || isProfileSubmitting} />
           </label>
-          <label className="auth-field" htmlFor="edit-email">
-            <span>이메일 주소</span>
-            <input id="edit-email" type="email" value={profileForm.email} readOnly disabled />
+          <label className="auth-field profile-readonly-field" htmlFor="edit-email">
+            <span className="profile-readonly-label">
+              이메일 주소
+              <strong>수정 불가</strong>
+            </span>
+            <span className="profile-readonly-control">
+              <input
+                id="edit-email"
+                type="email"
+                value={profileForm.email}
+                readOnly
+                aria-describedby="edit-email-guide"
+              />
+              <span className="profile-readonly-lock" aria-hidden="true">🔒</span>
+            </span>
+            <small id="edit-email-guide">가입할 때 사용한 이메일은 변경할 수 없습니다.</small>
           </label>
           <div className="profile-image-field">
             <span>프로필 이미지</span>

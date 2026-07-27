@@ -6,10 +6,10 @@
     --walk-muted: #918981;
     --walk-line: #eee8e1;
     width: 100%;
-    max-width: 400px;
+    max-width: var(--app-frame-width);
     height: 100vh;
     height: 100dvh;
-    min-height: 640px;
+    min-height: 0;
     margin: 0 auto;
     position: relative;
     overflow: hidden;
@@ -620,10 +620,12 @@
     .walk-route-empty { height: 160px; }
 }
 
-@media (max-width: 420px) {
+/* PC 미리보기에서도 다른 주요 화면과 같은 애플리케이션 프레임을 사용합니다. */
+@media (min-width: 520px) {
     .walk-mobile-container {
-        max-width: none;
-        min-height: 580px;
+        height: min(var(--app-frame-height), calc(100vh - 48px));
+        border-radius: 24px;
+        box-shadow: 0 20px 60px rgb(35 40 54 / 12%);
     }
 }
 

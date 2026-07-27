@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { getBoardPosts } from '../api/boardApi';
 import { BOARD_CATEGORIES } from '../boardConstants';
 import BottomNavigation from '../../../components/BottomNavigation';
@@ -41,12 +41,12 @@ function formatCreatedAt(createdAt, currentTime) {
     return new Date(createdAt).toLocaleDateString('ko-KR');
 }
 
-// 사진 주소가 없거나 불러오지 못해도 깨진 이미지 대신 기본 칸을 보여줍니다.
+// 사진 주소가 없거나 불러오지 못하면 이미지 영역을 만들지 않습니다.
 function PostThumbnail({ imageUrl, title }) {
     const [hasImageError, setHasImageError] = useState(false);
 
     if (!imageUrl || hasImageError) {
-        return <div className="post-card-thumbnail post-card-thumbnail-empty" aria-hidden="true">🖼️</div>;
+        return null;
     }
 
     return (
@@ -61,11 +61,26 @@ function PostThumbnail({ imageUrl, title }) {
 
 export default function BoardListPage() {
     const navigate = useNavigate();
-    const [currentBoard, setCurrentBoard] = useState(BOARD_CATEGORIES[0]);
+    const [searchParams, setSearchParams] = useSearchParams();
+    const categoryFromUrl = searchParams.get('category');
+    const [currentBoard, setCurrentBoard] = useState(
+        () => BOARD_CATEGORIES.find((category) => category.value === categoryFromUrl)
+            ?? BOARD_CATEGORIES[0]
+    );
     const [posts, setPosts] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [loadError, setLoadError] = useState('');
     const [currentTime, setCurrentTime] = useState(() => Date.now());
+
+    // 뒤로가기로 목록에 돌아왔을 때 URL의 게시판 종류를 드롭다운에 다시 적용합니다.
+    useEffect(() => {
+        const category = BOARD_CATEGORIES.find(
+            (item) => item.value === categoryFromUrl
+        );
+        if (category && category.value !== currentBoard.value) {
+            setCurrentBoard(category);
+        }
+    }, [categoryFromUrl, currentBoard.value]);
 
     useEffect(() => {
         const timerId = window.setInterval(() => {
@@ -110,7 +125,10 @@ export default function BoardListPage() {
             (category) => category.value === event.target.value
         );
 
-        if (selectedCategory) setCurrentBoard(selectedCategory);
+        if (selectedCategory) {
+            setCurrentBoard(selectedCategory);
+            setSearchParams({ category: selectedCategory.value }, { replace: true });
+        }
     };
 
     return (
@@ -149,7 +167,9 @@ export default function BoardListPage() {
                         <article
                             key={post.id}
                             className="post-card"
-                            onClick={() => navigate(`/board/${post.id}`)}
+                            onClick={() => navigate(
+                                `/board/${post.id}?category=${currentBoard.value}`
+                            )}
                         >
                             <div className="post-card-main">
                                 <div className="post-card-copy">

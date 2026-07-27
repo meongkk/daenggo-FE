@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import BottomNavigation from '../../../components/BottomNavigation';
 import { loadKakaoMapSdk } from '../api/kakaoMapLoader';
 import { findKakaoPlace } from '../api/kakaoPlaceService';
@@ -138,6 +139,7 @@ function HeartIcon({ filled = false }) {
 }
 
 function MapPage() {
+  const [searchParams] = useSearchParams();
   // useRef는 React 화면 밖의 카카오 지도 객체와 현재 필터 값을 기억합니다.
   const mapElementRef = useRef(null);
   const kakaoRef = useRef(null);
@@ -162,7 +164,10 @@ function MapPage() {
   // 처음에는 어떤 카테고리도 선택하지 않아 주황색 활성 버튼이 없습니다.
   const [activeCategory, setActiveCategory] = useState(null);
   const [favoritePlaces, setFavoritePlaces] = useState(readFavoritePlaces);
-  const [isFavoritesOpen, setIsFavoritesOpen] = useState(false);
+  // /map?panel=favorites 주소로 들어오면 지도 위에 찜 목록을 바로 엽니다.
+  const [isFavoritesOpen, setIsFavoritesOpen] = useState(
+    () => searchParams.get('panel') === 'favorites',
+  );
   const [isSearchPanelOpen, setIsSearchPanelOpen] = useState(false);
   const [searchPanelInitialView, setSearchPanelInitialView] = useState('search');
   const [placeFilters, setPlaceFilters] = useState(EMPTY_PLACE_FILTERS);
@@ -661,7 +666,9 @@ const loadPlacesFromBackend = useCallback(async () => {
               onClick={handlePlacePreviewClose}
               aria-label="장소 정보 닫기"
             >
-              ×
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6.5 6.5 17.5 17.5M17.5 6.5 6.5 17.5" />
+              </svg>
             </button>
 
             <PlaceImage
