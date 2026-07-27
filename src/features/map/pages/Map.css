@@ -256,13 +256,18 @@
 
 .map-current-location {
   left: 14px;
-  bottom: 18px;
+  bottom: 16px;
   width: 42px;
   height: 42px;
   border-radius: 50%;
   color: #ed8d2d;
   font-size: 24px;
   font-weight: 800;
+}
+
+.map-current-location span {
+  display: inline-block;
+  transform: translateY(-3px);
 }
 
 .map-current-location:disabled {
