@@ -100,9 +100,12 @@ export default function BoardWritePage() {
                     : {}),
             };
 
-            await createBoardPost(requestData);
+            // 백엔드가 반환한 새 게시글 정보에서 id를 꺼내 상세 페이지 주소에 사용합니다.
+            const createdPost = await createBoardPost(requestData);
             alert('게시글이 등록되었습니다.');
-            navigate('/board');
+            navigate(`/board/${createdPost.id}?category=${boardType}`, {
+                replace: true,
+            });
         } catch (error) {
             const errorMessage = error.response?.data?.message
                 ?? error.message

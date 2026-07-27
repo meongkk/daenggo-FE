@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { getBoardPosts } from '../api/boardApi';
 import { BOARD_CATEGORIES } from '../boardConstants';
 import BottomNavigation from '../../../components/BottomNavigation';
@@ -61,11 +61,26 @@ function PostThumbnail({ imageUrl, title }) {
 
 export default function BoardListPage() {
     const navigate = useNavigate();
-    const [currentBoard, setCurrentBoard] = useState(BOARD_CATEGORIES[0]);
+    const [searchParams, setSearchParams] = useSearchParams();
+    const categoryFromUrl = searchParams.get('category');
+    const [currentBoard, setCurrentBoard] = useState(
+        () => BOARD_CATEGORIES.find((category) => category.value === categoryFromUrl)
+            ?? BOARD_CATEGORIES[0]
+    );
     const [posts, setPosts] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [loadError, setLoadError] = useState('');
     const [currentTime, setCurrentTime] = useState(() => Date.now());
+
+    // 뒤로가기로 목록에 돌아왔을 때 URL의 게시판 종류를 드롭다운에 다시 적용합니다.
+    useEffect(() => {
+        const category = BOARD_CATEGORIES.find(
+            (item) => item.value === categoryFromUrl
+        );
+        if (category && category.value !== currentBoard.value) {
+            setCurrentBoard(category);
+        }
+    }, [categoryFromUrl, currentBoard.value]);
 
     useEffect(() => {
         const timerId = window.setInterval(() => {
@@ -110,7 +125,10 @@ export default function BoardListPage() {
             (category) => category.value === event.target.value
         );
 
-        if (selectedCategory) setCurrentBoard(selectedCategory);
+        if (selectedCategory) {
+            setCurrentBoard(selectedCategory);
+            setSearchParams({ category: selectedCategory.value }, { replace: true });
+        }
     };
 
     return (
@@ -149,7 +167,9 @@ export default function BoardListPage() {
                         <article
                             key={post.id}
                             className="post-card"
-                            onClick={() => navigate(`/board/${post.id}`)}
+                            onClick={() => navigate(
+                                `/board/${post.id}?category=${currentBoard.value}`
+                            )}
                         >
                             <div className="post-card-main">
                                 <div className="post-card-copy">

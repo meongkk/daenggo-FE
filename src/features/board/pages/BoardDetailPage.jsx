@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
     createBoardComment,
     deleteBoardComment,
@@ -10,7 +10,7 @@ import {
     updateBoardPost,
     uploadBoardImages,
 } from '../api/boardApi';
-import { getCategoryLabel } from '../boardConstants';
+import { BOARD_CATEGORIES, getCategoryLabel } from '../boardConstants';
 import BoardImageEditor from '../components/BoardImageEditor';
 import BottomNavigation from '../../../components/BottomNavigation';
 import { getMyInfo } from '../../user/api/userApi';
@@ -42,6 +42,7 @@ function getApiErrorMessage(error, fallbackMessage) {
 export default function BoardDetailPage() {
     const { id } = useParams();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const [post, setPost] = useState(null);
     const [currentUserId, setCurrentUserId] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -62,6 +63,17 @@ export default function BoardDetailPage() {
     const [postUpdateError, setPostUpdateError] = useState('');
     const [editExistingImageUrls, setEditExistingImageUrls] = useState([]);
     const [editNewImageFiles, setEditNewImageFiles] = useState([]);
+    const categoryFromUrl = searchParams.get('category');
+    const returnCategory = BOARD_CATEGORIES.some(
+        (category) => category.value === categoryFromUrl
+    )
+        ? categoryFromUrl
+        : post?.type ?? BOARD_CATEGORIES[0].value;
+
+    // 상세 화면을 연 게시판 종류로 돌아갑니다.
+    const handleBackToBoard = () => {
+        navigate(`/board?category=${returnCategory}`, { replace: true });
+    };
 
     useEffect(() => {
         let isCurrentRequest = true;
@@ -197,7 +209,7 @@ export default function BoardDetailPage() {
             setIsPostDeleting(true);
             setPostDeleteError('');
             await deleteBoardPost(id);
-            navigate('/board', { replace: true });
+            navigate(`/board?category=${returnCategory}`, { replace: true });
         } catch (error) {
             setPostDeleteError(getApiErrorMessage(error, '게시글을 삭제하지 못했습니다.'));
         } finally {
@@ -260,7 +272,7 @@ export default function BoardDetailPage() {
     return (
         <div className="mobile-container">
             <header className="header write-header">
-                <button type="button" className="back-button" onClick={() => navigate(-1)} aria-label="이전 화면으로 이동">
+                <button type="button" className="back-button" onClick={handleBackToBoard} aria-label="이전 게시판으로 이동">
                     ←
                 </button>
                 커뮤니티
