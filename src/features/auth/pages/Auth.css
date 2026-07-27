@@ -18,6 +18,7 @@
   width: min(100%, 250px);
   height: 225px;
   margin: -4px auto 2px;
+  object-fit: contain;
 }
 
 .auth-login-content h1,
