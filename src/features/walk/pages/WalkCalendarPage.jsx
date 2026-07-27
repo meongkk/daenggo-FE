@@ -4,7 +4,11 @@ import { getWalkCalendar, startWalk } from '../api/walkApi';
 import BottomNavigation from '../../../components/BottomNavigation';
 import './Walk.css';
 import pawImage from '../../../assets/icons/paw.png';
-import { getMyPets } from '../../pet/api/petApi';
+import { getWalkablePets } from '../api/walkablePetApi';
+import {
+    getGroupWalks,
+    getMyGroups,
+} from '../../group/api/groupApi';
 
 const WEEKDAYS = ['월', '화', '수', '목', '금', '토', '일'];
 
@@ -32,28 +36,37 @@ function createCalendarDays(monthDate) {
 export default function WalkCalendarPage() {
     const navigate = useNavigate();
     const [monthDate, setMonthDate] = useState(() => new Date());
-    const [myPets, setMyPets] = useState([]);
+    const [walkablePets, setWalkablePets] = useState([]);
     const [isPetLoading, setIsPetLoading] = useState(true);
 
     useEffect(() => {
-        async function loadMyPets() {
+        const controller = new AbortController();
+
+        async function loadWalkablePets() {
             try {
                 setIsPetLoading(true);
-    
-                const pets = await getMyPets();
-    
-                setMyPets(pets);
-    
+
+                const pets = await getWalkablePets({
+                    signal: controller.signal,
+                });
+
+                if (!controller.signal.aborted) {
+                    setWalkablePets(pets);
+                }
             } catch (error) {
-                console.error('반려동물 조회 실패', error);
-                setMyPets([]);
+                if (error.code !== 'ERR_CANCELED') {
+                    console.error('산책 가능한 반려동물 조회 실패', error);
+                    setWalkablePets([]);
+                }
             } finally {
-                setIsPetLoading(false);
+                if (!controller.signal.aborted) {
+                    setIsPetLoading(false);
+                }
             }
         }
-    
-        loadMyPets();
-    
+
+        loadWalkablePets();
+        return () => controller.abort();
     }, []);
 
     
@@ -86,41 +99,51 @@ export default function WalkCalendarPage() {
         [walkDates]
     );
 
-    const walkMap = useMemo(() => {
-        const map = new Map();
-    
-        walkDates.forEach(item => {
-            map.set(
-                item.walkDate,
-                [
-                ...(map.get(item.walkDate) ?? []),
-                item.walkRecordId
-                ]
-            );
-        });
-    
-        return map;
-    }, [walkDates]);
-
     useEffect(() => {
-        let isCurrentRequest = true;
+        const controller = new AbortController();
 
         async function loadCalendar() {
             try {
                 setIsLoading(true);
                 setErrorMessage('');
-                const data = await getWalkCalendar(year, month);
+                const [calendarData, groups] = await Promise.all([
+                    getWalkCalendar(year, month),
+                    getMyGroups({ signal: controller.signal }),
+                ]);
+                const myWalks = calendarData.walks ?? [];
+                const monthKey = `${year}-${String(month).padStart(2, '0')}`;
+                const groupWalkLists = await Promise.all(
+                    groups.map(async (group) => {
+                        try {
+                            return await getGroupWalks(group.groupId, {
+                                signal: controller.signal,
+                            });
+                        } catch (error) {
+                            if (error.code === 'ERR_CANCELED') {
+                                throw error;
+                            }
 
-                console.log(data);
-                
-                const walks = data.walks ?? [];
-                console.log(walkDates);
+                            console.error(
+                                `${group.name} 그룹 산책 기록 조회 실패`,
+                                error,
+                            );
+                            return [];
+                        }
+                    }),
+                );
+                const groupWalkDates = groupWalkLists
+                    .flat()
+                    .filter((walk) => walk.startedAt?.startsWith(monthKey))
+                    .map((walk) => ({
+                        walkRecordId: walk.walkRecordId,
+                        walkDate: walk.startedAt.slice(0, 10),
+                    }));
 
-                if (isCurrentRequest) {
-                    setWalkDates(walks);
+                if (!controller.signal.aborted) {
+                    setWalkDates([...myWalks, ...groupWalkDates]);
                 }
             } catch (error) {
-                if (isCurrentRequest) {
+                if (error.code !== 'ERR_CANCELED') {
                     setWalkDates([]);
                     setErrorMessage(
                         error.response?.data?.message
@@ -128,12 +151,12 @@ export default function WalkCalendarPage() {
                     );
                 }
             } finally {
-                if (isCurrentRequest) setIsLoading(false);
+                if (!controller.signal.aborted) setIsLoading(false);
             }
         }
 
         loadCalendar();
-        return () => { isCurrentRequest = false; };
+        return () => controller.abort();
     }, [year, month]);
 
     function changeMonth(amount) {
@@ -172,9 +195,6 @@ export default function WalkCalendarPage() {
                                     console.log('선택된 산책:', dateKey);
                                     
                                     navigate(`/walk/list/${dateKey}`);
-                                    // const walks = walkMap.get(dateKey);
-
-                                    // setSelectedWalks(walks);
                                 }}
                             >
                                 {hasWalk && (
@@ -206,12 +226,12 @@ export default function WalkCalendarPage() {
                     type="button"
                     className="walk-primary-button"
                     onClick={handleStartWalk}
-                    disabled={isPetLoading || myPets.length === 0}
+                    disabled={isPetLoading || walkablePets.length === 0}
                 >
                     {isPetLoading
                     ? '반려동물 확인 중...'
-                    : myPets.length === 0
-                        ? '반려동물 등록 후 이용 가능'
+                    : walkablePets.length === 0
+                        ? '내 또는 그룹 반려동물 등록 후 이용 가능'
                         : '산책하기'}
                 </button>
             </div>
