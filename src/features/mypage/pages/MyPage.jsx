@@ -17,7 +17,7 @@ import './MyPage.css';
 
 const menuItems = [
   { label: '내 정보 수정', path: '/mypage/edit' },
-  { label: '찜 목록 관리', path: '/mypage/favorites' },
+  { label: '찜 목록 관리', path: '/map?panel=favorites' },
   { label: '내 반려동물 관리', path: '/mypage/pets' },
   { label: '그룹 관리', path: '/mypage/groups' },
 ];
