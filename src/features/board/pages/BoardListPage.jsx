@@ -41,12 +41,12 @@ function formatCreatedAt(createdAt, currentTime) {
     return new Date(createdAt).toLocaleDateString('ko-KR');
 }
 
-// 사진 주소가 없거나 불러오지 못해도 깨진 이미지 대신 기본 칸을 보여줍니다.
+// 사진 주소가 없거나 불러오지 못하면 이미지 영역을 만들지 않습니다.
 function PostThumbnail({ imageUrl, title }) {
     const [hasImageError, setHasImageError] = useState(false);
 
     if (!imageUrl || hasImageError) {
-        return <div className="post-card-thumbnail post-card-thumbnail-empty" aria-hidden="true">🖼️</div>;
+        return null;
     }
 
     return (

@@ -666,7 +666,9 @@ const loadPlacesFromBackend = useCallback(async () => {
               onClick={handlePlacePreviewClose}
               aria-label="장소 정보 닫기"
             >
-              ×
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6.5 6.5 17.5 17.5M17.5 6.5 6.5 17.5" />
+              </svg>
             </button>
 
             <PlaceImage

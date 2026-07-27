@@ -122,11 +122,13 @@ function PlaceSearchPanel({
   };
 
   /** 검색어를 백엔드 GET /api/places/search로 보내 장소 이름을 찾습니다. */
-  const handleKeywordSearch = async (event) => {
+  const handleKeywordSearch = async (event, selectedKeyword = query) => {
     event?.preventDefault();
-    const keyword = query.trim();
+    const keyword = selectedKeyword.trim();
     if (!keyword) return;
 
+    // 최근 검색어를 눌렀을 때도 선택한 단어를 검색창에 표시합니다.
+    setQuery(keyword);
     setIsLoading(true);
     setErrorMessage('');
     try {
@@ -395,7 +397,12 @@ function PlaceSearchPanel({
           ) : (
             recentSearches.map((keyword) => (
               <div key={keyword}>
-                <button type="button" onClick={() => setQuery(keyword)}>{keyword}</button>
+                <button
+                  type="button"
+                  onClick={() => handleKeywordSearch(undefined, keyword)}
+                >
+                  {keyword}
+                </button>
                 <button type="button" onClick={() => removeRecentSearch(keyword)} aria-label={`${keyword} 삭제`}>×</button>
               </div>
             ))

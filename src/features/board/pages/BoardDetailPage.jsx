@@ -285,7 +285,7 @@ export default function BoardDetailPage() {
                     <>
                         <div className="detail-category">{getCategoryLabel(post.type)}</div>
                         <div style={{ padding: '0 20px' }}>
-                            {!isPostEditing && (post.imageUrls?.length > 0 ? (
+                            {!isPostEditing && post.imageUrls?.length > 0 && (
                                 <div className="detail-image-list">
                                     {post.imageUrls.map((imageUrl, index) => (
                                         <img
@@ -296,9 +296,7 @@ export default function BoardDetailPage() {
                                         />
                                     ))}
                                 </div>
-                            ) : (
-                                <div className="post-image-placeholder" style={{ marginTop: '15px' }}>🖼️</div>
-                            ))}
+                            )}
                             <div className="post-info-row">
                                 <span className="nickname">{post.nickname || '사용자'}</span>
                                 <div className="post-info-actions">
