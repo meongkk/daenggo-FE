@@ -589,7 +589,8 @@
 
 @media (min-width: 520px) {
   .mypage-screen {
-    height: min(812px, calc(100vh - 48px));
+    min-height: 0;
+    height: min(var(--app-frame-height), calc(100vh - 48px));
   }
 
   .mypage-main {
