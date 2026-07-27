@@ -22,6 +22,11 @@ const menuItems = [
   { label: '그룹 관리', path: '/mypage/groups' },
 ];
 
+const WITHDRAW_ERROR_MESSAGES = {
+  502: '카카오 연결 해제에 실패했습니다. 잠시 후 다시 시도해주세요.',
+  503: '현재 카카오 회원 탈퇴를 처리할 수 없습니다.',
+};
+
 export default function MyPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -88,8 +93,20 @@ export default function MyPage() {
         state: { message: '회원 탈퇴가 완료되었습니다.' },
       });
     } catch (error) {
+      const status = error.response?.status;
+
+      if (status === 401) {
+        clearTokens();
+        window.alert('로그인이 만료되었습니다.');
+        navigate('/login', { replace: true });
+        return;
+      }
+
       setAccountDialog(null);
-      setProfileError(getApiErrorMessage(error, '회원 탈퇴를 처리하지 못했습니다.'));
+      setProfileError(
+        WITHDRAW_ERROR_MESSAGES[status]
+        || getApiErrorMessage(error, '회원 탈퇴에 실패했습니다.'),
+      );
       setIsAccountSubmitting(false);
     }
   };
@@ -139,7 +156,14 @@ export default function MyPage() {
             <p>
               {accountDialog === 'logout'
                 ? <>정말 로그아웃하시겠어요?<br />다시 이용하려면 로그인이 필요합니다.</>
-                : <>탈퇴하면 계정을 다시 사용할 수 없습니다.<br />정말 탈퇴하시겠어요?</>}
+                : (
+                  <>
+                    회원 탈퇴 시 반려견, 산책 기록, 즐겨찾기,<br />
+                    작성한 게시글과 댓글, 그룹 정보가 모두 삭제됩니다.<br />
+                    삭제된 정보는 복구할 수 없습니다.<br />
+                    정말 탈퇴하시겠습니까?
+                  </>
+                )}
             </p>
             <div>
               <button type="button" className="logout-cancel" onClick={() => setAccountDialog(null)} disabled={isAccountSubmitting}>취소</button>

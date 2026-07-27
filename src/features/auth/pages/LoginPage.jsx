@@ -1,19 +1,43 @@
 import { useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { getApiErrorMessage } from '../../../lib/apiError';
 import PuppyIllustration from '../components/PuppyIllustration';
 import PasswordField from '../components/PasswordField';
-import { login } from '../api/authApi';
+import { getKakaoLoginUrl, login } from '../api/authApi';
 import { saveTokens } from '../api/tokenStorage';
 import './Auth.css';
+
+const OAUTH_ERROR_MESSAGES = {
+  email_required: '카카오 이메일 제공 동의가 필요합니다.',
+  email_already_registered:
+    '같은 이메일로 가입된 계정이 있습니다. 일반 로그인을 이용해주세요.',
+  access_denied: '카카오 로그인이 취소되었습니다.',
+  invalid_kakao_user: '카카오 사용자 정보를 확인할 수 없습니다.',
+  oauth_login_failed: '카카오 로그인에 실패했습니다.',
+  oauth_session_expired: '카카오 로그인 시간이 만료되었습니다. 다시 시도해주세요.',
+};
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [error, setError] = useState(() => {
+    const oauthError = searchParams.get('oauthError');
+
+    if (!oauthError) {
+      return '';
+    }
+
+    return OAUTH_ERROR_MESSAGES[oauthError]
+      || '카카오 로그인 중 오류가 발생했습니다.';
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleKakaoLogin = () => {
+    window.location.href = getKakaoLoginUrl();
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -102,7 +126,14 @@ export default function LoginPage() {
         <div className="social-login" aria-label="소셜 로그인">
           <button type="button" className="social-login__button social-login__button--google" aria-label="Google로 로그인">G</button>
           <button type="button" className="social-login__button social-login__button--apple" aria-label="Apple로 로그인">●</button>
-          <button type="button" className="social-login__button social-login__button--kakao" aria-label="카카오로 로그인"><span /></button>
+          <button
+            type="button"
+            className="social-login__button social-login__button--kakao"
+            aria-label="카카오로 로그인"
+            onClick={handleKakaoLogin}
+          >
+            <span />
+          </button>
         </div>
       </main>
     </div>
