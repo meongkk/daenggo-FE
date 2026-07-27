@@ -5,8 +5,7 @@ import {
     saveWalkTrackPoints,
     uploadWalkPhoto
 } from '../api/walkApi';
-// import {getMyPetsApi} from '../api/petApi.js'; // 펫 등록 수정 중
-import { getMyPets as fetchMyPets } from '../../pet/api/petApi';
+import { getWalkablePets } from '../api/walkablePetApi';
 import BottomNavigation from '../../../components/BottomNavigation';
 import './Walk.css';
 import KakaoMap from "../../../components/KakaoMap";
@@ -64,7 +63,7 @@ export default function WalkTrackingPage() {
     const [showCompleteModal, setShowCompleteModal] = useState(false);
     const [walkTitle, setWalkTitle] = useState('');
     const [walkMemo, setWalkMemo] = useState('');
-    const [myPets, setMyPets] = useState([]);
+    const [walkablePets, setWalkablePets] = useState([]);
     const [selectedPetIds, setSelectedPetIds] = useState([]);
     const [petSelectorOpen, setPetSelectorOpen] = useState(false);
     const pausedTimeRef = useRef(0);
@@ -164,44 +163,32 @@ export default function WalkTrackingPage() {
 
     useEffect(() => {
         if (!showCompleteModal) return;
+        const controller = new AbortController();
 
-        async function loadMyPets() {
+        async function loadWalkablePets() {
             try {
                 setErrorMessage('');
 
-                const pets = await fetchMyPets();
+                const pets = await getWalkablePets({
+                    signal: controller.signal,
+                });
 
-                setMyPets(pets);
+                if (!controller.signal.aborted) {
+                    setWalkablePets(pets);
+                }
             } catch (error) {
-                setErrorMessage(
-                    error.response?.data?.message
-                    ?? '반려동물 목록을 불러오지 못했어요.'
-                );
+                if (error.code !== 'ERR_CANCELED') {
+                    setErrorMessage(
+                        error.response?.data?.message
+                        ?? '산책 가능한 반려동물 목록을 불러오지 못했어요.'
+                    );
+                }
             }
         }
 
-        loadMyPets();
+        loadWalkablePets();
+        return () => controller.abort();
     }, [showCompleteModal]);
-
-
-
-    // useEffect(() => { 펫 등록 추가 중
-    //     if(showCompleteModal){
-    //         getMyPets();
-    //     }
-    // }, [showCompleteModal]);
-
-
-    // // 여기에 추가
-    // async function getMyPets(){ 이게 2개 있다고 지우라는데?
-    //     try {
-    //         // TODO: 실제 API 연결
-    //         const res = await getMyPetsApi();
-    //         setMyPets(res.data);
-    //     } catch(error){
-    //         console.log("반려동물 조회 실패", error);
-    //     }
-    // }
     
 
     // GPS 좌표 수신 전용. 시간 측정과는 분리되어 있다.
@@ -456,7 +443,7 @@ export default function WalkTrackingPage() {
                             {
                                 selectedPetIds.length === 0
                                     ? "반려동물 선택"
-                                    : myPets
+                                    : walkablePets
                                         .filter(pet => selectedPetIds.includes(pet.petId))
                                         .map(pet => pet.name)
                                         .join(", ")
@@ -472,7 +459,7 @@ export default function WalkTrackingPage() {
                         {petSelectorOpen && (
                             <div className="pet-selector-list">
 
-                                {myPets.map((pet)=>(
+                                {walkablePets.map((pet)=>(
                                     <label 
                                         key={pet.petId}
                                         className="pet-selector-item"
@@ -492,48 +479,6 @@ export default function WalkTrackingPage() {
                         )}
 
                     </div>
-{/* 
-                        <div className="pet-selector-wrapper">
-
-                        <div
-                            className="pet-selector-box"
-                            onClick={() => setPetSelectorOpen(prev => !prev)}
-                        >
-                            {
-                                selectedPetIds.length === 0
-                                    ? "반려동물 선택"
-                                    : myPets
-                                        .filter(pet => selectedPetIds.includes(pet.petId))
-                                        .map(pet => pet.name)
-                                        .join(", ")
-                            }
-                        </div>
-
-
-                        {petSelectorOpen && (
-                            <div className="pet-selector-list">
-
-                                {myPets.map((pet) => (
-                                    <label
-                                        key={pet.petId}
-                                        className="pet-selector-item"
-                                    >
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedPetIds.includes(pet.petId)}
-                                            onChange={() => togglePet(pet.petId)}
-                                        />
-
-                                        <span>
-                                            {pet.name}
-                                        </span>
-                                    </label>
-                                ))}
-
-                            </div>
-                        )}
-
-                        </div> */}
 
                         <button
                             className="walk-primary-button"
