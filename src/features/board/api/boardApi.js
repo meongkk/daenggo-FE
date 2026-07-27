@@ -3,6 +3,8 @@ import apiClient from '../../../lib/apiClient';
 const COMMUNITY_POST_API_URL = import.meta.env.VITE_BOARD_WRITE_API_URL
     ?? '/api/community/posts';
 const COMMUNITY_IMAGE_API_URL = '/api/community/images';
+// React StrictMode가 개발 중 같은 상세 조회를 연속 실행해도 실제 GET 요청은 한 번만 보냅니다.
+const pendingBoardPostRequests = new Map();
 
 /** 이미지 파일을 업로드하고 게시글에 저장할 URL 목록을 반환한다. */
 export async function uploadBoardImages(imageFiles) {
@@ -46,8 +48,20 @@ export async function updateBoardPost(postId, requestData) {
 
 /** 게시글 상세를 조회한다. */
 export async function getBoardPost(postId) {
-    const response = await apiClient.get(`${COMMUNITY_POST_API_URL}/${postId}`);
-    return response.data;
+    const requestKey = String(postId);
+    const pendingRequest = pendingBoardPostRequests.get(requestKey);
+    if (pendingRequest) return pendingRequest;
+
+    const request = apiClient
+        .get(`${COMMUNITY_POST_API_URL}/${postId}`)
+        .then((response) => response.data)
+        .finally(() => {
+            // 요청이 끝나면 삭제하므로 나중에 게시글을 다시 방문할 때는 조회수가 정상적으로 증가합니다.
+            pendingBoardPostRequests.delete(requestKey);
+        });
+
+    pendingBoardPostRequests.set(requestKey, request);
+    return request;
 }
 
 /** 게시글의 댓글 목록을 조회한다. */
