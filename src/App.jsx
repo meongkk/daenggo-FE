@@ -10,6 +10,8 @@ import BoardDetailPage from './features/board/pages/BoardDetailPage';
 import BoardWritePage from './features/board/pages/BoardWritePage';
 import LoginPage from './features/auth/pages/LoginPage';
 import SignUpPage from './features/auth/pages/SignUpPage';
+import OAuthCallbackPage from './features/auth/pages/OAuthCallbackPage';
+import OAuthNicknamePage from './features/auth/pages/OAuthNicknamePage';
 import RequireAuth from './features/auth/components/RequireAuth';
 // 이메일 인증 API 연결 전까지 인증번호 화면은 잠시 비활성화합니다.
 // import VerificationPage from './features/auth/pages/VerificationPage';
@@ -50,6 +52,8 @@ function App() {
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignUpPage />} />
+        <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
+        <Route path="/oauth/nickname" element={<OAuthNicknamePage />} />
         {/* <Route path="/verify" element={<VerificationPage />} /> */}
 
         <Route element={<RequireAuth />}>
